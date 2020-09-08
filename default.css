@@ -1,0 +1,41 @@
+#auth {
+}
+
+#content {
+	position: relative;
+}
+
+#error {
+	color: #800;
+}
+
+#timesheetTableContainer {
+	max-height: 300px;
+	overflow: auto;
+}
+
+table, tr, th, td {
+	border: thin solid black;
+}
+
+#timesheetTable {
+	border-collapse: collapse;
+}
+
+#timesheetTable > tbody > tr:hover {
+	background-color: #ded8b6;
+	cursor: pointer;
+}
+
+#newSpreadsheetContainer {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	left: 0;
+	top: 0;
+	display: flex;
+	flex-direction: column;
+	background-color: #777777fa;
+	align-items: center;
+	justify-content: center;
+}
