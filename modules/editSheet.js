@@ -33,7 +33,7 @@ function createTimeRow(index, row) {
  * @param spreadsheetId String The timesheet to edit.
  * @return {Promise<void>}
  */
-export default async function editSheet(spreadsheetId) {
+async function editSheet(spreadsheetId) {
 	const content = ele("content");
 
 	content.innerHTML = `<p><a href='#list'>< List</a></p>
@@ -67,5 +67,7 @@ export default async function editSheet(spreadsheetId) {
 		}
 	}
 
-	console.log("values response", response);
+	console.debug("spreadsheets.values response", response);
 }
+
+export default editSheet;

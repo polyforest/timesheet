@@ -27,8 +27,8 @@
 	 * @param e Error
 	 */
 	function uncaughtErrorHandler(e) {
-		console.log(e);
-		ele("error").innerText = e.message || e.details || e.result.error.message;
+		console.error(e);
+		ele("error").innerText = !!e.result ? e.result.error.message : e.message || e.details;
 	}
 
 	window.onerror = uncaughtErrorHandler;

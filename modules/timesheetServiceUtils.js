@@ -43,12 +43,14 @@ export async function createTimesheet(title) {
 			],
 		},
 	});
+	console.debug("newSheetResponse", newSheetResponse);
 	const timesheetFolder = await getTimesheetFolderId();
-	gapi.client.drive.files.update({
+	const fileUpdateResponse = await gapi.client.drive.files.update({
 		fileId: newSheetResponse.result.spreadsheetId,
-		addParents: timesheetFolder.id,
+		addParents: timesheetFolder,
 		fields: 'id, parents'
 	});
+	console.debug("fileUpdateResponse", fileUpdateResponse);
 	return newSheetResponse.result.spreadsheetId;
 }
 
@@ -69,6 +71,6 @@ export async function getTimesheetFolderId() {
 		},
 		fields: 'id'
 	});
-	console.log(newFolderResponse);
+	console.debug("newFolderResponse", newFolderResponse);
 	return newFolderResponse.result.id;
 }
