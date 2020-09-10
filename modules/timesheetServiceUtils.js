@@ -181,13 +181,9 @@ export async function getTimesheetFolderId() {
 /**
  * Appends a new row to the timesheet.
  * @param spreadsheetId String
- * @param startDate Date
- * @param endDate Date
- * @param group String
- * @param comment String
  * @return {Promise<void>}
  */
-export async function appendTimeEntry(spreadsheetId, startDate, endDate, group, comment) {
+export async function appendTimeEntry(spreadsheetId) {
 	const request = {
 		// The ID of the spreadsheet to update.
 		spreadsheetId: spreadsheetId,
@@ -213,6 +209,30 @@ export async function appendTimeEntry(spreadsheetId, startDate, endDate, group, 
 
 	const response = (await gapi.client.sheets.spreadsheets.values.append(request));
 	console.debug("Append time entry", response);
+}
+
+/**
+ * Converts a JS Date to Docs Serial format.
+ *
+ * @param date Date
+ * @return {number}
+ *
+ * https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption#ENUM_VALUES.SERIAL_NUMBER
+ */
+function dateToSerial(date) {
+	return (date.getTime() - new Date(1899, 11, 30).getTime()) / (24 * 60 * 60 * 1000);
+}
+
+/**
+ * Converts a Docs Serial format to a JS Date.
+ *
+ * @param serialNumber number
+ * @return {Date}
+ *
+ * https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption#ENUM_VALUES.SERIAL_NUMBER
+ */
+function serialToDate(serialNumber) {
+	return new Date(serialNumber * 24 * 60 * 60 * 1000 + new Date(1899, 11, 30).getTime());
 }
 
 /**
