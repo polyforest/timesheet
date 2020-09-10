@@ -46,7 +46,7 @@ async function timesheetsList() {
 	};
 
 	ele("newSpreadsheetContainer").onkeydown = (e) => {
-		if (e.keyCode === 27) {
+		if (e.code === "Escape") {
 			closeNewSpreadsheetForm();
 		}
 	};
@@ -60,9 +60,8 @@ async function timesheetsList() {
 		"q": `'${timesheetFolderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
 	});
 
-	console.log("timesheetsResponse", timesheetsResponse);
+	console.debug("timesheetsResponse", timesheetsResponse);
 	for (const timesheet of timesheetsResponse.result.files) {
-		console.log(timesheet);
 		const li = document.createElement("li");
 		ul.appendChild(li);
 		const a = document.createElement("a");

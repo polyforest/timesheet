@@ -1,7 +1,6 @@
 window.state = {
 	isSignedIn: false,
-	pageToken: -1,
-	isActive: true
+	pageToken: -1
 };
 
 // Client ID and API key from the Developer Console
@@ -13,7 +12,7 @@ const DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v
 
 // Authorization scopes required by the API; multiple scopes can be
 // included, separated by spaces.
-const SCOPES = ["spreadsheets", "drive", "drive.file"].map(s => `https://www.googleapis.com/auth/${s}`).join(" ")
+const SCOPES = ["drive.file"].map(s => `https://www.googleapis.com/auth/${s}`).join(" ")
 
 const authorizeButton = document.getElementById('authorize_button');
 const signoutButton = document.getElementById('signout_button');
@@ -22,7 +21,7 @@ const signoutButton = document.getElementById('signout_button');
  * Returns a reference to the first object with the specified value of the ID or NAME attribute.
  * An alias to Document.getElementById
  * @param id String that specifies the ID value. Case-insensitive.
- * @return HTMLElement | null
+ * @return HTMLElement
  */
 function ele(id) {
 	return document.getElementById(id);
@@ -32,7 +31,7 @@ function ele(id) {
  * Returns the first element that is a descendant of node that matches selectors.
  * An alias to Document.querySelector
  * @param selectors String
- * @return Element | null
+ * @return Element
  */
 function query(selectors) {
 	return document.querySelector(selectors);
@@ -69,6 +68,7 @@ function updateSignInStatus(isSignedIn) {
 	} else {
 		authorizeButton.style.display = 'block';
 		signoutButton.style.display = 'none';
+		localStorage.removeItem("lastLocation");
 	}
 	router();
 }
@@ -127,30 +127,30 @@ function router() {
 
 window.addEventListener('hashchange', router, false);
 
-async function getChangesStartToken() {
-	if (state.pageToken !== -1) return;
-	const tokenResponse = await gapi.client.drive.changes.getStartPageToken();
-	state.pageToken = tokenResponse.result.startPageToken;
-	console.log("pageToken", state.pageToken);
-}
+// async function getChangesStartToken() {
+// 	if (state.pageToken !== -1) return;
+// 	const tokenResponse = await gapi.client.drive.changes.getStartPageToken();
+// 	state.pageToken = tokenResponse.result.startPageToken;
+// 	console.log("pageToken", state.pageToken);
+// }
 
-async function pollChanges() {
-	if (!state.isSignedIn || !state.isActive || state.pageToken === -1) return;
-	const changesListResponse = await gapi.client.drive.changes.list({
-		pageToken: state.pageToken,
-		pageSize: 1000
-	});
-	const changedFiles = changesListResponse.result.changes.map(change => change.fileId);
-	console.log("changedFiles ", changedFiles);
-	state.pageToken = changesListResponse.result.nextPageToken || changesListResponse.result.newStartPageToken;
-	console.log("Polled changes", state.pageToken);
-}
-
-window.addEventListener("focus", (e) => {
-	state.isActive = true;
-	// pollChanges();
-});
-window.addEventListener("blur", (e) => {
-	state.isActive = false;
-});
+// async function pollChanges() {
+// 	if (!state.isSignedIn || !state.isActive || state.pageToken === -1) return;
+// 	const changesListResponse = await gapi.client.drive.changes.list({
+// 		pageToken: state.pageToken,
+// 		pageSize: 1000
+// 	});
+// 	const changedFiles = changesListResponse.result.changes.map(change => change.fileId);
+// 	console.log("changedFiles ", changedFiles);
+// 	state.pageToken = changesListResponse.result.nextPageToken || changesListResponse.result.newStartPageToken;
+// 	console.log("Polled changes", state.pageToken);
+// }
+//
+// window.addEventListener("focus", (e) => {
+// 	state.isActive = true;
+// 	// pollChanges();
+// });
+// window.addEventListener("blur", (e) => {
+// 	state.isActive = false;
+// });
 // setInterval(pollChanges, 5000);

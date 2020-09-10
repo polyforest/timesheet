@@ -17,7 +17,12 @@ export async function createTimesheet(title) {
 								values: [
 									{
 										userEnteredValue: {
-											stringValue: "Date"
+											stringValue: "Start Date"
+										}
+									},
+									{
+										userEnteredValue: {
+											stringValue: "End Date"
 										}
 									},
 									{
@@ -36,6 +41,26 @@ export async function createTimesheet(title) {
 										}
 									}
 								]
+							},
+							{
+								values: [
+									{
+										userEnteredValue: {
+											stringValue: "1-2-2020"
+										}
+									},
+									{
+										userEnteredValue: {
+											stringValue: "1-3-2020 3:22:34 A.M."
+										}
+									},
+									{
+										userEnteredValue: {
+											stringValue: "4:22"
+										}
+									}
+
+								]
 							}
 						]
 					}
@@ -43,12 +68,87 @@ export async function createTimesheet(title) {
 			],
 		},
 	});
+
 	console.debug("newSheetResponse", newSheetResponse);
+	const sheet0Id = newSheetResponse.result.sheets[0].properties.sheetId;
+
+	// Format header row to be bold:
+	const formatResponse = await gapi.client.sheets.spreadsheets.batchUpdate({
+		spreadsheetId: newSheetResponse.result.spreadsheetId,
+		requests: [
+			{
+				updateSheetProperties: {
+					properties: {
+						sheetId: sheet0Id,
+						gridProperties: {
+							frozenRowCount: 1
+						}
+					},
+					fields: "gridProperties.frozenRowCount"
+				}
+			},
+			{
+				repeatCell: {
+					range: {
+						sheetId: sheet0Id,
+						endRowIndex: 1
+					},
+					cell: {
+						userEnteredFormat: {
+							textFormat: {
+								bold: true
+							}
+						}
+					},
+					fields: "userEnteredFormat.textFormat.bold"
+				}
+			},
+			{
+				repeatCell: {
+					range: {
+						sheetId: sheet0Id,
+						startRowIndex: 1,
+						startColumnIndex: 0,
+						endColumnIndex: 2
+					},
+					cell: {
+						userEnteredFormat: {
+							numberFormat: {
+								type: "DATE_TIME",
+								pattern: "yyyy-mm-dd h:mm"
+							}
+						}
+					},
+					fields: "*"
+				}
+			},
+			{
+				repeatCell: {
+					range: {
+						sheetId: sheet0Id,
+						startRowIndex: 1,
+						startColumnIndex: 2,
+						endColumnIndex: 3
+					},
+					cell: {
+						userEnteredFormat: {
+							numberFormat: {
+								type: "DATE_TIME",
+								pattern: "[hh]:[mm]"
+							}
+						}
+					},
+					fields: "userEnteredFormat.numberFormat"
+				}
+			}
+		]
+	});
+	console.debug("formatResponse", formatResponse);
+
 	const timesheetFolder = await getTimesheetFolderId();
 	const fileUpdateResponse = await gapi.client.drive.files.update({
 		fileId: newSheetResponse.result.spreadsheetId,
-		addParents: timesheetFolder,
-		fields: 'id, parents'
+		addParents: timesheetFolder
 	});
 	console.debug("fileUpdateResponse", fileUpdateResponse);
 	return newSheetResponse.result.spreadsheetId;
@@ -73,4 +173,88 @@ export async function getTimesheetFolderId() {
 	});
 	console.debug("newFolderResponse", newFolderResponse);
 	return newFolderResponse.result.id;
+}
+
+/**
+ * Appends a new row to the timesheet.
+ * @param spreadsheetId String
+ * @param startDate Date
+ * @param endDate Date
+ * @param group String
+ * @param comment String
+ * @return {Promise<void>}
+ */
+export async function appendTimeEntry(spreadsheetId, startDate, endDate, group, comment) {
+	const request = {
+		// The ID of the spreadsheet to update.
+		spreadsheetId: spreadsheetId,
+
+		// // The A1 notation of a range to search for a logical table of data.
+		// // Values are appended after the last row of the table.
+		range: 'A1:E1',
+
+		// How the input data should be interpreted.
+		valueInputOption: 'USER_ENTERED',
+
+		resource: {
+			values: [
+				[
+					startDate,
+					endDate,
+					"",
+					group,
+					comment
+				]
+			]
+		}
+	};
+
+	const response = (await gapi.client.sheets.spreadsheets.values.append(request));
+	console.debug("Append time entry", response);
+}
+
+/**
+ * Sets the metadata on the timesheet to indicate the start time of the timer.
+ * @param spreadsheetId
+ * @return {Promise<void>}
+ */
+export async function startTimer(spreadsheetId) {
+	const fileUpdateResponse = await gapi.client.drive.files.update({
+		fileId: spreadsheetId,
+		appProperties: {
+			startTime: (new Date()).getTime()
+		}
+	});
+	console.debug("fileUpdateResponse", fileUpdateResponse);
+}
+
+/**
+ * Sets the metadata on the timesheet to clear the start time.
+ * @param spreadsheetId
+ * @return {Promise<void>}
+ */
+export async function stopTimer(spreadsheetId) {
+	const fileUpdateResponse = await gapi.client.drive.files.update({
+		fileId: spreadsheetId,
+		appProperties: {
+			startTime: null
+		}
+	});
+	console.debug("fileUpdateResponse", fileUpdateResponse);
+}
+
+/**
+ * Gets the start time metadata on this spreadsheet, if set.
+ * @param spreadsheetId
+ * @return {Promise<Date | null>}
+ */
+export async function getStartTime(spreadsheetId) {
+	const getStartTimeResponse = await gapi.client.drive.files.get({
+		fileId: spreadsheetId,
+		fields: ["appProperties"]
+	});
+	console.debug("getStartTimeResponse", getStartTimeResponse);
+	const time = getStartTimeResponse.result.appProperties && getStartTimeResponse.result.appProperties.startTime;
+	if (!time) return null;
+	else return new Date(Number(time));
 }
