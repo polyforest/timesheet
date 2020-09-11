@@ -3,10 +3,12 @@
  * @return {Promise<String>}
  */
 export async function createTimesheet(title) {
+	const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const newSheetResponse = await gapi.client.sheets.spreadsheets.create({
 		resource: {
 			properties: {
-				title: title
+				title: title,
+				timeZone: timeZone
 			},
 			sheets: [
 				{
@@ -41,27 +43,7 @@ export async function createTimesheet(title) {
 										}
 									}
 								]
-							},
-							// {
-							// 	values: [
-							// 		{
-							// 			userEnteredValue: {
-							// 				stringValue: "1-2-2020"
-							// 			}
-							// 		},
-							// 		{
-							// 			userEnteredValue: {
-							// 				stringValue: "1-3-2020 3:22:34 A.M."
-							// 			}
-							// 		},
-							// 		{
-							// 			userEnteredValue: {
-							// 				stringValue: "4:22"
-							// 			}
-							// 		}
-							//
-							// 	]
-							// }
+							}
 						]
 					}
 				}
@@ -120,25 +102,6 @@ export async function createTimesheet(title) {
 					},
 					fields: "userEnteredFormat.numberFormat"
 				}
-			},
-			{
-				repeatCell: {
-					range: {
-						sheetId: sheet0Id,
-						startRowIndex: 1,
-						startColumnIndex: 2,
-						endColumnIndex: 3
-					},
-					cell: {
-						userEnteredFormat: {
-							numberFormat: {
-								type: "TIME",
-								format: "h:mm"
-							}
-						}
-					},
-					fields: "userEnteredFormat.numberFormat"
-				}
 			}
 		]
 	});
@@ -179,87 +142,106 @@ export async function getTimesheetFolderId() {
 }
 
 /**
- * Appends a new row to the timesheet.
+ * Appends a new start time to the timesheet.
+ * This will be an incomplete row with just the start time column set until stop is called.
  * @param spreadsheetId String
+ * @param startTime Date
+ * @param endTime Date
+ * @param category String
+ * @param comment String
  * @return {Promise<void>}
  */
-export async function appendTimeEntry(spreadsheetId) {
-	const request = {
+export async function appendTimeEntry(spreadsheetId, startTime, endTime, category, comment) {
+	const appendRequest = {
 		// The ID of the spreadsheet to update.
 		spreadsheetId: spreadsheetId,
 
-		// // The A1 notation of a range to search for a logical table of data.
-		// // Values are appended after the last row of the table.
-		range: 'B1:E1',
+		// The A1 notation of a range to search for a logical table of data.
+		// Values are appended after the last row of the table.
+		range: `A1:E1`,
 
 		// How the input data should be interpreted.
-		valueInputOption: 'RAW',
+		valueInputOption: 'USER_ENTERED',
+
+		includeValuesInResponse: false,
 
 		resource: {
 			values: [
 				[
-					0.5,
-					"=C1-B1",
-					group,
+					dateTimeFormula(startTime),
+					dateTimeFormula(endTime),
+					null, // Needs a formula, see workaround below
+					category,
 					comment
 				]
 			]
 		}
 	};
 
-	const response = (await gapi.client.sheets.spreadsheets.values.append(request));
-	console.debug("Append time entry", response);
+	const appendResponse = (await gapi.client.sheets.spreadsheets.values.append(appendRequest));
+	console.debug("Append time entry", appendResponse);
+
+	// This is a workaround:
+	// It's unclear from the documentation if it's possible to use a formula in an append
+	// call that references the currently appending row.
+	// In lieu of that, we check the result for the updatedRange, parse that for the row number and perform another
+	// update call.
+	const updatedRange = appendResponse.result.updates.updatedRange;
+	const row = parseInt(updatedRange.substr(updatedRange.lastIndexOf(":E") + 2));
+	console.log(row);
+
+	// `=CEILING((B${row}-A${row}) * 24, 0.25)`
+
+	const updateRequest = {
+		// The ID of the spreadsheet to update.
+		spreadsheetId: spreadsheetId,
+
+		// The A1 notation of a range to search for a logical table of data.
+		// Values are appended after the last row of the table.
+		range: `A${row}:E${row}`,
+
+		// How the input data should be interpreted.
+		valueInputOption: 'USER_ENTERED',
+
+		includeValuesInResponse: false,
+
+		resource: {
+			values: [
+				[
+					null,
+					null,
+					`=CEILING((B${row}-A${row}) * 24, 0.25)`,
+					null,
+					null
+				]
+			]
+		}
+	};
+
+	const updateResponse = (await gapi.client.sheets.spreadsheets.values.update(updateRequest));
+	console.debug("Update formula", updateResponse);
+
 }
 
 /**
- * Converts a JS Date to Docs Serial format.
- *
+ * Returns a sheets formula representing the given date.
  * @param date Date
- * @return {number}
- *
- * https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption#ENUM_VALUES.SERIAL_NUMBER
  */
-function dateToSerial(date) {
-	return (date.getTime() - new Date(1899, 11, 30).getTime()) / (24 * 60 * 60 * 1000);
-}
-
-/**
- * Converts a Docs Serial format to a JS Date.
- *
- * @param serialNumber number
- * @return {Date}
- *
- * https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption#ENUM_VALUES.SERIAL_NUMBER
- */
-function serialToDate(serialNumber) {
-	return new Date(serialNumber * 24 * 60 * 60 * 1000 + new Date(1899, 11, 30).getTime());
+export function dateTimeFormula(date) {
+	return `=DATE(${date.getFullYear()}, ${date.getMonth() + 1}, ${date.getDate()}) + TIME(${date.getHours()}, ${date.getMinutes()}, ${date.getSeconds()})`
 }
 
 /**
  * Sets the metadata on the timesheet to indicate the start time of the timer.
- * @param spreadsheetId
+ * @param spreadsheetId String The id of the spreadsheet.
+ * @param startTime Date | null
  * @return {Promise<void>}
  */
-export async function startTimer(spreadsheetId) {
+export async function updateStartTime(spreadsheetId, startTime) {
 	const fileUpdateResponse = await gapi.client.drive.files.update({
 		fileId: spreadsheetId,
 		appProperties: {
-			startTime: (new Date()).getTime()
-		}
-	});
-	console.debug("fileUpdateResponse", fileUpdateResponse);
-}
-
-/**
- * Sets the metadata on the timesheet to clear the start time.
- * @param spreadsheetId
- * @return {Promise<void>}
- */
-export async function stopTimer(spreadsheetId) {
-	const fileUpdateResponse = await gapi.client.drive.files.update({
-		fileId: spreadsheetId,
-		appProperties: {
-			startTime: null
+			startTime: (startTime == null) ? null : startTime.getTime()
 		}
 	});
 	console.debug("fileUpdateResponse", fileUpdateResponse);
@@ -271,6 +253,7 @@ export async function stopTimer(spreadsheetId) {
  * @return {Promise<Date | null>}
  */
 export async function getStartTime(spreadsheetId) {
+	if (spreadsheetId == null) throw Error("spreadsheetId must not be null");
 	const getStartTimeResponse = await gapi.client.drive.files.get({
 		fileId: spreadsheetId,
 		fields: ["appProperties"]

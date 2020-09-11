@@ -1,3 +1,5 @@
+"use strict";
+
 window.state = {
 	isSignedIn: false,
 	pageToken: -1

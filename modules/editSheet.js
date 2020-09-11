@@ -1,4 +1,4 @@
-import { appendTimeEntry, getStartTime, stopTimer, startTimer } from "./timesheetServiceUtils.js"
+import * as utils from "./timesheetServiceUtils.js"
 
 /**
  * Adds a timesheet row to the table body.
@@ -33,14 +33,39 @@ function createTimeRow(index, row) {
 	return tr;
 }
 
+const timer = {
+	startTime: null,
+	updateIntervalId: null
+}
+
 /**
- * Refreshes the timer buttons display.
- * @param spreadsheetId String
+ * Updates the timer data.
+ * @param startTime Date | null The timestamp the timer began.
  */
-async function refreshTimerButtons(spreadsheetId) {
-	const time = await getStartTime(spreadsheetId)
-	ele("startTimerBtn").style.display = (time == null) ? "" : "none"
-	ele("stopTimerBtn").style.display = (time == null) ? "none" : ""
+function updateTimer(startTime) {
+	const startTimerBtn = ele("startTimerBtn");
+	const stopTimerBtn = ele("stopTimerBtn");
+	const timerDisplay = ele("timerDisplay");
+
+	timer.startTime = startTime;
+	if (startTime == null) {
+		startTimerBtn.style.display = "";
+		stopTimerBtn.style.display = "none";
+		console.debug("timer.updateIntervalId " + timer.updateIntervalId);
+		window.clearInterval(timer.updateIntervalId);
+		timer.updateIntervalId = null;
+		timerDisplay.innerText = "";
+	} else {
+		startTimerBtn.style.display = "none";
+		stopTimerBtn.style.display = "";
+
+		if (timer.updateIntervalId === null) {
+			timer.updateIntervalId = window.setInterval(() => {
+				const elapsedS = Math.round((Date.now() - startTime) / 1000);
+				timerDisplay.innerText = elapsedS + "s";
+			}, 1000);
+		}
+	}
 }
 
 /**
@@ -49,23 +74,45 @@ async function refreshTimerButtons(spreadsheetId) {
  * @return {Promise<void>}
  */
 async function refreshTimesheet(spreadsheetId) {
-	const body = query("#timesheetTable > tbody");
-
-	const response = await gapi.client.sheets.spreadsheets.values.get({
+	const valuesResponse = await gapi.client.sheets.spreadsheets.values.get({
 		spreadsheetId: spreadsheetId,
 		range: "A2:D"
 	});
+	console.debug("spreadsheets.values response", valuesResponse);
 
-	body.innerHTML = ""
-	if (response.result.values !== undefined) {
-		for (let i = 0; i < response.result.values.length; i++) {
-			const row = response.result.values[i];
+	const rows = valuesResponse.result.values;
+	updateTimesheetRows(rows);
+}
+
+
+function updateTimesheetRows(rows) {
+	const tableBody = query("#timesheetTable > tbody");
+	tableBody.innerHTML = ""
+	if (rows !== undefined) {
+		for (let i = 0; i < rows.length; i++) {
+			const row = rows[i];
 			const tr = createTimeRow(i, row);
-			body.appendChild(tr);
+			tableBody.appendChild(tr);
 		}
 	}
+}
 
-	console.debug("spreadsheets.values response", response);
+async function startTimerClickedHandler(spreadsheetId) {
+	const startTime = new Date();
+	updateTimer(startTime);
+	await utils.updateStartTime(spreadsheetId, startTime);
+}
+
+async function stopTimerClickedHandler(spreadsheetId) {
+	const endTime = new Date();
+	const elapsedMs = endTime - timer.startTime;
+	console.log("elapsedMs: " + elapsedMs)
+
+	const startTime = timer.startTime;
+	updateTimer(null);
+	await utils.updateStartTime(spreadsheetId, null);
+	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, "Category", "Comment");
+	await refreshTimesheet(spreadsheetId);
 }
 
 /**
@@ -77,8 +124,11 @@ async function editSheet(spreadsheetId) {
 	const content = ele("content");
 
 	content.innerHTML = `<p><a href='#list'>< List</a></p>
-<button id="startTimerBtn" style="display: none;">Start Timer</button>
-<button id="stopTimerBtn" style="display: none;">Stop Timer</button>
+<p>
+	<button id="startTimerBtn" style="display: none;">Start Timer</button>
+	<button id="stopTimerBtn" style="display: none;">Stop Timer</button>
+	<div id="timerDisplay"></div>
+</p>
 <div id="timesheetTableContainer">
 	<table id="timesheetTable">
 		<thead>
@@ -94,23 +144,10 @@ async function editSheet(spreadsheetId) {
 		</tbody>
 	</table>
 </div>`;
+	ele("startTimerBtn").onclick = startTimerClickedHandler.bind(this, spreadsheetId);
+	ele("stopTimerBtn").onclick = stopTimerClickedHandler.bind(this, spreadsheetId);
 
-	await refreshTimerButtons(spreadsheetId);
-
-	ele("startTimerBtn").onclick = async () => {
-		await startTimer(spreadsheetId);
-		await refreshTimerButtons(spreadsheetId);
-	}
-	ele("stopTimerBtn").onclick = async () => {
-		const startTime = await getStartTime(spreadsheetId);
-		if (!!startTime) {
-			await appendTimeEntry(spreadsheetId, startTime, new Date(), "Group", "Comment");
-			await stopTimer(spreadsheetId)
-			await refreshTimerButtons(spreadsheetId);
-			await refreshTimesheet(spreadsheetId);
-		}
-	}
-
+	utils.getStartTime(spreadsheetId).then((startTime) => { updateTimer(startTime) })
 	await refreshTimesheet(spreadsheetId);
 }
 
