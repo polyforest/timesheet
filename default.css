@@ -10,8 +10,6 @@
 }
 
 #timesheetTableContainer {
-	max-height: 300px;
-	overflow: auto;
 }
 
 table, tr, th, td {

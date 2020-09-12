@@ -1,7 +1,27 @@
 import * as utils from "./timesheetServiceUtils.js"
 
+let appProperties = {};
+
+const timer = {
+
+	/**
+	 * The timestamp the timer began.
+	 * @type {Date|null}
+	 */
+	startTime: null,
+
+	/**
+	 * The update interval handle for the timer display.
+	 * @type {number}
+	 */
+	updateIntervalId: -1
+}
+
 /**
- * Adds a timesheet row to the table body.
+ * Creates a timesheet row.
+ * This row should then be added to the spreadsheet table's body.
+ *
+ * @return {HTMLTableRowElement}
  */
 function createTimeRow(index, row) {
 	const tr = document.createElement("tr");
@@ -33,16 +53,17 @@ function createTimeRow(index, row) {
 	return tr;
 }
 
-const timer = {
-	startTime: null,
-	updateIntervalId: null
+function pad(num, size) {
+	let s = num + "";
+	while (s.length < size) s = "0" + s;
+	return s;
 }
 
 /**
  * Updates the timer data.
- * @param startTime Date | null The timestamp the timer began.
+ * @param startTime {Date|null} The timestamp the timer began.
  */
-function updateTimer(startTime) {
+function updateTimerUi(startTime) {
 	const startTimerBtn = ele("startTimerBtn");
 	const stopTimerBtn = ele("stopTimerBtn");
 	const timerDisplay = ele("timerDisplay");
@@ -51,18 +72,20 @@ function updateTimer(startTime) {
 	if (startTime == null) {
 		startTimerBtn.style.display = "";
 		stopTimerBtn.style.display = "none";
-		console.debug("timer.updateIntervalId " + timer.updateIntervalId);
 		window.clearInterval(timer.updateIntervalId);
-		timer.updateIntervalId = null;
+		timer.updateIntervalId = -1;
 		timerDisplay.innerText = "";
 	} else {
 		startTimerBtn.style.display = "none";
 		stopTimerBtn.style.display = "";
 
-		if (timer.updateIntervalId === null) {
+		if (timer.updateIntervalId === -1) {
 			timer.updateIntervalId = window.setInterval(() => {
-				const elapsedS = Math.round((Date.now() - startTime) / 1000);
-				timerDisplay.innerText = elapsedS + "s";
+				const elapsedS = Math.floor((Date.now() - startTime) / 1000);
+				const h = Math.floor(elapsedS / 3600);
+				const m = Math.floor((elapsedS % 3600) / 60);
+				const s = Math.floor(elapsedS % 60);
+				timerDisplay.innerText = pad(h, 2) + ":" + pad(m, 2) + ":" + pad(s, 2);
 			}, 1000);
 		}
 	}
@@ -74,6 +97,15 @@ function updateTimer(startTime) {
  * @return {Promise<void>}
  */
 async function refreshTimesheet(spreadsheetId) {
+	 const propertiesPromise = utils.getProperties(spreadsheetId).then((properties) => {
+		 console.log("properties", properties);
+		 const startTime = properties.startTime || null;
+		 updateTimerUi(startTime && new Date(Number(startTime)));
+
+		 ele("timeResolutionsInput").value = properties.timeResolution || "4";
+		 appProperties = properties;
+	 });
+
 	const valuesResponse = await gapi.client.sheets.spreadsheets.values.get({
 		spreadsheetId: spreadsheetId,
 		range: "A2:D"
@@ -81,11 +113,11 @@ async function refreshTimesheet(spreadsheetId) {
 	console.debug("spreadsheets.values response", valuesResponse);
 
 	const rows = valuesResponse.result.values;
-	updateTimesheetRows(rows);
+	updateTimesheetRowsUi(rows);
+	await propertiesPromise;
 }
 
-
-function updateTimesheetRows(rows) {
+function updateTimesheetRowsUi(rows) {
 	const tableBody = query("#timesheetTable > tbody");
 	tableBody.innerHTML = ""
 	if (rows !== undefined) {
@@ -99,7 +131,7 @@ function updateTimesheetRows(rows) {
 
 async function startTimerClickedHandler(spreadsheetId) {
 	const startTime = new Date();
-	updateTimer(startTime);
+	updateTimerUi(startTime);
 	await utils.updateStartTime(spreadsheetId, startTime);
 }
 
@@ -109,9 +141,9 @@ async function stopTimerClickedHandler(spreadsheetId) {
 	console.log("elapsedMs: " + elapsedMs)
 
 	const startTime = timer.startTime;
-	updateTimer(null);
+	updateTimerUi(null);
 	await utils.updateStartTime(spreadsheetId, null);
-	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, "Category", "Comment");
+	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, "Category", "Comment", appProperties.timeResolution || 4);
 	await refreshTimesheet(spreadsheetId);
 }
 
@@ -124,11 +156,20 @@ async function editSheet(spreadsheetId) {
 	const content = ele("content");
 
 	content.innerHTML = `<p><a href='#list'>< List</a></p>
-<p>
+<div>
 	<button id="startTimerBtn" style="display: none;">Start Timer</button>
 	<button id="stopTimerBtn" style="display: none;">Stop Timer</button>
 	<div id="timerDisplay"></div>
-</p>
+	
+	<label for="timeResolutionsInput">Time Resolution:</label>
+	<select name="timeResolutionsInput" id="timeResolutionsInput">
+		<option value="3600"/>0:00:01</option>
+		<option value="60">0:01</option>
+		<option value="4" selected>0:15</option>
+		<option value="2">0:30</option>
+		<option value="1">1:00</option>
+	</select>
+</div>
 <div id="timesheetTableContainer">
 	<table id="timesheetTable">
 		<thead>
@@ -147,7 +188,13 @@ async function editSheet(spreadsheetId) {
 	ele("startTimerBtn").onclick = startTimerClickedHandler.bind(this, spreadsheetId);
 	ele("stopTimerBtn").onclick = stopTimerClickedHandler.bind(this, spreadsheetId);
 
-	utils.getStartTime(spreadsheetId).then((startTime) => { updateTimer(startTime) })
+	const timeResolutionsInput = ele("timeResolutionsInput");
+	timeResolutionsInput.onchange = async (e) => {
+		console.log(timeResolutionsInput.value);
+		appProperties.timeResolution = timeResolutionsInput.value;
+		await utils.updateProperties(spreadsheetId, { timeResolution: timeResolutionsInput.value });
+	}
+
 	await refreshTimesheet(spreadsheetId);
 }
 
