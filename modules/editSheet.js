@@ -1,4 +1,5 @@
 import * as utils from "./timesheetServiceUtils.js"
+import * as modal from "./modal.js"
 
 let appProperties = {};
 
@@ -102,13 +103,13 @@ async function refreshTimesheet(spreadsheetId) {
 		 const startTime = properties.startTime || null;
 		 updateTimerUi(startTime && new Date(Number(startTime)));
 
-		 ele("timeResolutionsInput").value = properties.timeResolution || "4";
+		 ele("timeResolutionsInput").value = properties.timeResolution.toString() || "4";
 		 appProperties = properties;
 	 });
 
 	const valuesResponse = await gapi.client.sheets.spreadsheets.values.get({
 		spreadsheetId: spreadsheetId,
-		range: "A2:D"
+		range: "A2:E"
 	});
 	console.debug("spreadsheets.values response", valuesResponse);
 
@@ -136,15 +137,57 @@ async function startTimerClickedHandler(spreadsheetId) {
 }
 
 async function stopTimerClickedHandler(spreadsheetId) {
-	const endTime = new Date();
-	const elapsedMs = endTime - timer.startTime;
-	console.log("elapsedMs: " + elapsedMs)
-
-	const startTime = timer.startTime;
+	openSubmitForm(spreadsheetId, -1, timer.startTime, new Date(), "", "");
 	updateTimerUi(null);
 	await utils.updateStartTime(spreadsheetId, null);
-	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, "Category", "Comment", appProperties.timeResolution || 4);
+}
+
+
+
+/**
+ *
+ * @param spreadsheetId {String}
+ * @param rowId {number}
+ * @param startTime {Date}
+ * @param endTime {Date}
+ * @param category {String}
+ * @param comment {String}
+ */
+function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comment) {
+	ele("spreadsheetId").value = spreadsheetId;
+	ele("rowId").value = rowId;
+	ele("dateStart").value = `${startTime.getFullYear()}-${pad(startTime.getMonth() + 1, 2)}-${pad(startTime.getDate(), 2)}`;
+	ele("timeStart").value = `${pad(startTime.getHours(), 2)}:${pad(startTime.getMinutes(), 2)}:${pad(startTime.getSeconds(), 2)}`;
+	ele("dateEnd").value = `${endTime.getFullYear()}-${pad(endTime.getMonth() + 1, 2)}-${pad(endTime.getDate(), 2)}`;
+	ele("timeEnd").value = `${pad(endTime.getHours(), 2)}:${pad(endTime.getMinutes(), 2)}:${pad(endTime.getSeconds(), 2)}`;
+
+	modal.openModal(ele("submitTimeEntryContainer"));
+	updateDuration();
+}
+
+async function submitTimeEntryFormHandler() {
+	const startTime = new Date(ele("dateStart").valueAsNumber + ele("timeStart").valueAsNumber);
+	const endTime = new Date(ele("dateEnd").valueAsNumber + ele("timeEnd").valueAsNumber);
+	const spreadsheetId = ele("spreadsheetId").value;
+	const cat = ele("category").value;
+	const comment = ele("comment").value;
+	modal.closeModal(ele("submitTimeEntryContainer"));
+
+	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
 	await refreshTimesheet(spreadsheetId);
+}
+
+/**
+ * Sets the duration display to be the time difference rounded to the next time resolution value.
+ */
+function updateDuration() {
+	const deltaS = (ele("dateEnd").valueAsNumber + ele("timeEnd").valueAsNumber - (ele("dateStart").valueAsNumber + ele("timeStart").valueAsNumber)) / 1000;
+	const round = 3600 / parseInt(ele("timeResolutionsInput").value);
+	const duration = Math.ceil(deltaS / round) * round;
+	const hours = Math.floor(duration / 3600);
+	const minutes = Math.floor((duration - hours * 3600) / 60);
+	const seconds = Math.floor(duration - hours * 3600 - minutes * 60);
+	ele("duration").innerText = `${hours}:${pad(minutes, 2)}:${pad(seconds, 2)}`;
 }
 
 /**
@@ -155,20 +198,66 @@ async function stopTimerClickedHandler(spreadsheetId) {
 async function editSheet(spreadsheetId) {
 	const content = ele("content");
 
-	content.innerHTML = `<p><a href='#list'>< List</a></p>
+	content.innerHTML = `
+<div id="submitTimeEntryContainer" style="display: none" class="modal">
+	<div class="panel">
+		<div class="titleBar">
+			<div class="label">New Time Entry</div>
+			<div class="close">&times;</div>
+		</div>
+		<form id="submitTimeEntryForm">
+			<input type="hidden" id="spreadsheetId">
+			<input type="hidden" id="rowId" value="-1">
+			
+			<label for="dateStart">Date Start</label>
+			<input type="date" id="dateStart" required>
+			<label for="timeStart">Time Start</label>
+			<input type="time" id="timeStart" step="1" required>
+
+			<label for="dateEnd">Date End</label>
+			<input type="date" id="dateEnd" required>
+			<label for="timeEnd">Time End</label>
+			<input type="time" id="timeEnd" step="1" required>
+			
+			<label for="timeResolutionsInput">Time Rounding:</label>
+			<select name="timeResolutionsInput" id="timeResolutionsInput">
+				<option value="3600"/>
+				0:00:01</option>
+				<option value="60">0:01</option>
+				<option value="4" selected>0:15</option>
+				<option value="2">0:30</option>
+				<option value="1">1:00</option>
+			</select>
+			
+			<label>Duration</label>
+			<div id="duration"></div>
+
+			<label for="category">Category</label>
+			<input list="categories" id="category">
+			<datalist id="categories">
+				<option value="Edge">
+				<option value="Firefox">
+				<option value="Chrome">
+				<option value="Opera">
+				<option value="Safari">
+			</datalist>
+			
+			<label for="comment">Comment</label>
+			<textarea id="comment"></textarea>
+
+			<label></label>
+			<input type="submit">
+		</form>
+	</div>
+</div>
+
 <div>
-	<button id="startTimerBtn" style="display: none;">Start Timer</button>
-	<button id="stopTimerBtn" style="display: none;">Stop Timer</button>
-	<div id="timerDisplay"></div>
-	
-	<label for="timeResolutionsInput">Time Resolution:</label>
-	<select name="timeResolutionsInput" id="timeResolutionsInput">
-		<option value="3600"/>0:00:01</option>
-		<option value="60">0:01</option>
-		<option value="4" selected>0:15</option>
-		<option value="2">0:30</option>
-		<option value="1">1:00</option>
-	</select>
+	<p><a href='#list'>< List</a></p>
+	<div class="controls">
+		<button id="startTimerBtn" style="display: none;">Start Timer</button>
+		<button id="stopTimerBtn" style="display: none;">Stop Timer</button>
+		<div id="timerDisplay"></div>
+	</div>
 </div>
 <div id="timesheetTableContainer">
 	<table id="timesheetTable">
@@ -191,9 +280,20 @@ async function editSheet(spreadsheetId) {
 	const timeResolutionsInput = ele("timeResolutionsInput");
 	timeResolutionsInput.onchange = async (e) => {
 		console.log(timeResolutionsInput.value);
-		appProperties.timeResolution = timeResolutionsInput.value;
+		appProperties.timeResolution = parseInt(timeResolutionsInput.value);
 		await utils.updateProperties(spreadsheetId, { timeResolution: timeResolutionsInput.value });
 	}
+
+	modal.initModal(ele("submitTimeEntryContainer"));
+
+	const submitForm = ele("submitTimeEntryForm");
+	submitForm.onsubmit = (e) => {
+		submitTimeEntryFormHandler();
+		return false;
+	};
+	submitForm.querySelectorAll("input,select").forEach((input) => {
+		input.addEventListener("change", updateDuration);
+	});
 
 	await refreshTimesheet(spreadsheetId);
 }

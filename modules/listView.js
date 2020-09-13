@@ -1,4 +1,5 @@
 import { createTimesheet, getTimesheetFolderId } from "./timesheetServiceUtils.js"
+import * as modal from "./modal.js"
 
 /**
  * Handles the submit from the new spreadsheet form.
@@ -11,7 +12,7 @@ function newSpreadsheetFormSubmitHandler() {
 	}, (e) => {
 		uncaughtErrorHandler(e);
 	});
-	closeNewSpreadsheetForm();
+	modal.closeModal(ele("newSpreadsheetContainer"));
 	return false;
 }
 
@@ -20,10 +21,6 @@ function openNewSpreadsheetForm() {
 	ele('spreadSheetName').focus();
 }
 
-function closeNewSpreadsheetForm() {
-	ele("newSpreadsheetForm").reset();
-	ele("newSpreadsheetContainer").style.display = "none";
-}
 
 /**
  * The content area will display a list of all non-trashed sheets within the folders named "Timesheets".
@@ -32,24 +29,23 @@ async function timesheetsList() {
 	const content = ele("content");
 
 	content.innerHTML = `<button id="newTimesheetButton">Create New Timesheet</button>
-<div id="newSpreadsheetContainer" style="display: none">
-	<h3>Create Timesheet</h3>
-	<form id="newSpreadsheetForm" action="#list/">
-		<label>Name:</label>
-		<input id="spreadSheetName" type="text" required>
-		<input type="submit">
-	</form>
+<div id="newSpreadsheetContainer" style="display: none" class="modal">
+	<div class="panel">
+		<span class="close">&times;</span>
+		<h3>Create Timesheet</h3>
+		<form id="newSpreadsheetForm" action="#list/">
+			<label>Name:</label>
+			<input id="spreadSheetName" type="text" required>
+			<input type="submit">
+		</form>
+	</div>
 </div>`;
 
 	ele("newTimesheetButton").onclick = () => {
 		openNewSpreadsheetForm();
 	};
 
-	ele("newSpreadsheetContainer").onkeydown = (e) => {
-		if (e.code === "Escape") {
-			closeNewSpreadsheetForm();
-		}
-	};
+	modal.initModal(ele("newSpreadsheetContainer"));
 
 	ele("newSpreadsheetForm").onsubmit = newSpreadsheetFormSubmitHandler;
 
