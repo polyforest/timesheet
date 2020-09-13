@@ -13,39 +13,17 @@ export async function createTimesheet(title) {
 			},
 			sheets: [
 				{
-						data: {
-						startRow: 0,
-						rowData: [
-							{
-								values: [
-									{
-										userEnteredValue: {
-											stringValue: "Start Date"
-										}
-									},
-									{
-										userEnteredValue: {
-											stringValue: "End Date"
-										}
-									},
-									{
-										userEnteredValue: {
-											stringValue: "Hours"
-										}
-									},
-									{
-										userEnteredValue: {
-											stringValue: "Category"
-										}
-									},
-									{
-										userEnteredValue: {
-											stringValue: "Comment"
-										}
-									}
-								]
-							}
-						]
+					properties: {
+						title: "Timesheet",
+						sheetId: 0,
+						index: 0
+					}
+				},
+				{
+					properties: {
+						title: "Billing",
+						sheetId: 1,
+						index: 1
 					}
 				}
 			],
@@ -53,43 +31,52 @@ export async function createTimesheet(title) {
 	});
 
 	console.debug("newSheetResponse", newSheetResponse);
-	const sheet0Id = newSheetResponse.result.sheets[0].properties.sheetId;
+	const spreadsheetId = newSheetResponse.result.spreadsheetId;
+
+	function freezeHeader(sheetId) {
+		return {
+			updateSheetProperties: {
+				properties: {
+					sheetId: sheetId,
+					gridProperties: {
+						frozenRowCount: 1
+					}
+				},
+				fields: "gridProperties.frozenRowCount"
+			}
+		}
+	}
+
+	function boldHeader(sheetId) {
+		return {
+			repeatCell: {
+				range: {
+					sheetId: sheetId,
+					endRowIndex: 1
+				},
+				cell: {
+					userEnteredFormat: {
+						textFormat: {
+							bold: true
+						}
+					}
+				},
+				fields: "userEnteredFormat.textFormat.bold"
+			}
+		}
+	}
 
 	// Format header row to be bold and frozen, and the date columns formatted.
 	const formatResponse = await gapi.client.sheets.spreadsheets.batchUpdate({
-		spreadsheetId: newSheetResponse.result.spreadsheetId,
+		spreadsheetId: spreadsheetId,
 		requests: [
-			{
-				updateSheetProperties: {
-					properties: {
-						sheetId: sheet0Id,
-						gridProperties: {
-							frozenRowCount: 1
-						}
-					},
-					fields: "gridProperties.frozenRowCount"
-				}
-			},
+			freezeHeader(0),
+			boldHeader(0),
+			freezeHeader(1),
+			boldHeader(1),
 			{
 				repeatCell: {
 					range: {
-						sheetId: sheet0Id,
-						endRowIndex: 1
-					},
-					cell: {
-						userEnteredFormat: {
-							textFormat: {
-								bold: true
-							}
-						}
-					},
-					fields: "userEnteredFormat.textFormat.bold"
-				}
-			},
-			{
-				repeatCell: {
-					range: {
-						sheetId: sheet0Id,
 						startRowIndex: 1,
 						startColumnIndex: 0,
 						endColumnIndex: 2
@@ -107,7 +94,6 @@ export async function createTimesheet(title) {
 			{
 				repeatCell: {
 					range: {
-						sheetId: sheet0Id,
 						startRowIndex: 1,
 						startColumnIndex: 2,
 						endColumnIndex: 3
@@ -122,10 +108,152 @@ export async function createTimesheet(title) {
 					},
 					fields: "userEnteredFormat.numberFormat"
 				}
+			},
+			{
+				repeatCell: {
+					range: {
+						sheetId: 1,
+						startColumnIndex: 3,
+						endColumnIndex: 4,
+						startRowIndex: 1
+					},
+					cell: {
+						userEnteredFormat: {
+							textFormat: {
+								bold: true
+							}
+						}
+					},
+					fields: "userEnteredFormat.textFormat.bold"
+				}
+			},
+			// Rate:
+			{
+				repeatCell: {
+					range: {
+						sheetId: 1,
+						startColumnIndex: 4,
+						endColumnIndex: 5,
+						startRowIndex: 1,
+						endRowIndex: 2
+					},
+					cell: {
+						userEnteredFormat: {
+							numberFormat: {
+								type: "NUMBER",
+								pattern: "#,##0.00"
+							}
+						}
+					},
+					fields: "userEnteredFormat.numberFormat"
+				}
+			},
+			{
+				// Total paid and total billed
+				repeatCell: {
+					range: {
+						sheetId: 1,
+						startColumnIndex: 4,
+						endColumnIndex: 5,
+						startRowIndex: 2,
+						endRowIndex: 6
+					},
+					cell: {
+						userEnteredFormat: {
+							numberFormat: {
+								type: "CURRENCY"
+							}
+						}
+					},
+					fields: "userEnteredFormat.numberFormat"
+				}
 			}
 		]
 	});
 	console.debug("formatResponse", formatResponse);
+
+	const timesheetDataRequest = {
+		spreadsheetId: spreadsheetId,
+		range: `A1:E1`,
+		valueInputOption: 'USER_ENTERED',
+
+		includeValuesInResponse: false,
+
+		resource: {
+			values: [
+				[
+					"Start Date",
+					"End Date",
+					"Hours",
+					"Category",
+					"Comment"
+				]
+			]
+		}
+	};
+
+	const timesheetDataResponse = (await gapi.client.sheets.spreadsheets.values.append(timesheetDataRequest));
+	console.debug("timesheetDataResponse", timesheetDataResponse);
+
+	const billingDataRequest = {
+		spreadsheetId: spreadsheetId,
+		range: `Billing!A1:E1`,
+		valueInputOption: 'USER_ENTERED',
+		includeValuesInResponse: false,
+
+		resource: {
+			values: [
+				// A1:E1
+				[
+					"Date",
+					"Paid Amount",
+				],
+				// A2:E2
+				[
+					null,
+					null,
+					null,
+					"Total Hours:",
+					"=Timesheet!C:C*24"
+				],
+				// A3:E3
+				[
+					null,
+					null,
+					null,
+					"Rate:",
+					"100"
+				],
+				// A4:E4
+				[
+					null,
+					null,
+					null,
+					"Total Paid:",
+					"=SUM(B:B)"
+				],
+				// A5:E5
+				[
+					null,
+					null,
+					null,
+					"Total Billed:",
+					"=E2*E3"
+				],
+				// A6:E6
+				[
+					null,
+					null,
+					null,
+					"Balance:",
+					"=E5-E4"
+				]
+			]
+		}
+	};
+
+	const billingDataResponse = (await gapi.client.sheets.spreadsheets.values.append(billingDataRequest));
+	console.debug("billingDataResponse", billingDataResponse);
 
 	// Add the new spreadsheet to the 'Timesheets' folder:
 	const timesheetFolder = await getTimesheetFolderId();
@@ -147,7 +275,7 @@ export async function createTimesheet(title) {
 export async function getTimesheetFolderId() {
 	const response = await gapi.client.drive.files.list({
 		"q": "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-	})
+	});
 	if (response.result.files.length > 0) return response.result.files[0].id;
 
 	const newFolderResponse = await gapi.client.drive.files.create({
