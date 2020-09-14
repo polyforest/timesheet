@@ -110,6 +110,7 @@ async function listView() {
  * Routes url hashbang changes to their appropriate views.
  */
 function router() {
+	ele("error").innerText = "";
 	ele("content").innerHTML = "";
 	if (!state.isSignedIn) return;
 
