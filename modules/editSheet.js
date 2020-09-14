@@ -103,7 +103,7 @@ async function refreshTimesheet(spreadsheetId) {
 		 const startTime = properties.startTime || null;
 		 updateTimerUi(startTime && new Date(Number(startTime)));
 
-		 ele("timeResolutionsInput").value = properties.timeResolution.toString() || "4";
+		 ele("timeResolutionsInput").value = !!properties.timeResolution ? properties.timeResolution.toString() : "4";
 		 appProperties = properties;
 	 });
 
