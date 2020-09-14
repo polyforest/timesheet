@@ -6,8 +6,8 @@ window.state = {
 };
 
 // Client ID and API key from the Developer Console
-const CLIENT_ID = '360768471837-s7u2be5g89i1d4s4n35gp5d2p5m6mgg9.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyA8blW19Y2bKxKJIf1S41Vss1ZyXKQn6Xw';
+const CLIENT_ID = '797670420941-809rc0un93uh3gmtm8n7sjlfg33e3lfa.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyByQizhldu-iGd6VNe8Dwc27xikf9EpM1k';
 
 // Array of API discovery doc URLs for APIs used by the quickstart
 const DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v4', 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
@@ -61,6 +61,8 @@ async function initClient() {
 /**
  *  Called when the signed in status changes, to update the UI
  *  appropriately. After a sign-in, the API is called.
+ *
+ *  @param isSignedIn Boolean
  */
 function updateSignInStatus(isSignedIn) {
 	state.isSignedIn = isSignedIn;
@@ -78,14 +80,14 @@ function updateSignInStatus(isSignedIn) {
 /**
  *  Sign in the user upon button click.
  */
-function handleAuthClick(event) {
+function handleAuthClick() {
 	gapi.auth2.getAuthInstance().signIn().catch((ignore) => {});
 }
 
 /**
  *  Sign out the user upon button click.
  */
-function handleSignoutClick(event) {
+function handleSignoutClick() {
 	gapi.auth2.getAuthInstance().signOut().catch((ignore) => {});
 }
 
@@ -104,6 +106,9 @@ async function listView() {
 	return await (await import(`./modules/listView.js`)).default();
 }
 
+/**
+ * Routes url hashbang changes to their appropriate views.
+ */
 function router() {
 	ele("content").innerHTML = "";
 	if (!state.isSignedIn) return;
@@ -128,31 +133,3 @@ function router() {
 }
 
 window.addEventListener('hashchange', router, false);
-
-// async function getChangesStartToken() {
-// 	if (state.pageToken !== -1) return;
-// 	const tokenResponse = await gapi.client.drive.changes.getStartPageToken();
-// 	state.pageToken = tokenResponse.result.startPageToken;
-// 	console.log("pageToken", state.pageToken);
-// }
-
-// async function pollChanges() {
-// 	if (!state.isSignedIn || !state.isActive || state.pageToken === -1) return;
-// 	const changesListResponse = await gapi.client.drive.changes.list({
-// 		pageToken: state.pageToken,
-// 		pageSize: 1000
-// 	});
-// 	const changedFiles = changesListResponse.result.changes.map(change => change.fileId);
-// 	console.log("changedFiles ", changedFiles);
-// 	state.pageToken = changesListResponse.result.nextPageToken || changesListResponse.result.newStartPageToken;
-// 	console.log("Polled changes", state.pageToken);
-// }
-//
-// window.addEventListener("focus", (e) => {
-// 	state.isActive = true;
-// 	// pollChanges();
-// });
-// window.addEventListener("blur", (e) => {
-// 	state.isActive = false;
-// });
-// setInterval(pollChanges, 5000);

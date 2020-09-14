@@ -1,0 +1,17 @@
+name: Publish
+on: push
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Upload
+        uses: appleboy/scp-action@v0.0.5
+        with:
+          host: bandbox.dreamhost.com
+          username: ${{ secrets.BANDBOX_FTP_USERNAME }}
+          password: ${{ secrets.BANDBOX_FTP_PASSWORD }}
+          source: ""
+          target: "~/time.polyforest.com/"
+          strip_components: 0
