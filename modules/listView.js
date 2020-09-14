@@ -31,11 +31,14 @@ async function timesheetsList() {
 	content.innerHTML = `<button id="newTimesheetButton">Create New Timesheet</button>
 <div id="newSpreadsheetContainer" style="display: none" class="modal">
 	<div class="panel">
-		<span class="close">&times;</span>
-		<h3>Create Timesheet</h3>
+		<div class="titleBar">
+			<div class="label">Create Timesheet</div>
+			<div class="close">&times;</div>
+		</div>
 		<form id="newSpreadsheetForm" action="#list/">
 			<label>Name:</label>
 			<input id="spreadSheetName" type="text" required>
+			<label></label>
 			<input type="submit">
 		</form>
 	</div>

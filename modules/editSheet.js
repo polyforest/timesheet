@@ -267,13 +267,14 @@ async function editSheet(spreadsheetId) {
 </div>
 
 <div>
-	<p><a href='#list'>< List</a></p>
+	<p><a href='#list' class="withIcon"><i class="material-icons">keyboard_backspace</i> Back to List</a></p>
 	<div class="controls">
-		<button id="startTimerBtn" style="display: none;">Start Timer</button>
-		<button id="stopTimerBtn" style="display: none;">Stop Timer</button>
+		<button id="startTimerBtn" class="withIcon" style="display: none;"><i class="material-icons">play_circle_outline</i> Start Timer</button>
+		<button id="stopTimerBtn" class="withIcon" style="display: none;"><i class="material-icons">pause_circle_outline</i> Stop Timer</button>
 		<div id="timerDisplay"></div>
 	</div>
 </div>
+<p></p>
 <div id="timesheetTableContainer">
 	<table id="timesheetTable">
 		<thead>

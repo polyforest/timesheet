@@ -11,18 +11,25 @@
 	<link rel="icon" type="image/svg+xml" href="./favicon.svg">
 	<link rel="mask-icon" href="./safari-pinned-tab.svg" color="#ef8e0c">
 	<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+		  rel="stylesheet">
 </head>
 <body>
 
 <div id="auth">
-	<img src="favicon.svg" height="64px">
+	<img src="favicon.svg" style="height: 70px">
 	<h3 class="appTitle">PolyForest® Time</h3>
 	<!--Add buttons to initiate auth sequence and sign out-->
-	<button id="authorize_button" style="display: none;">Log In</button>
-	<button id="signout_button" style="display: none;">Sign Out</button>
+	<button id="authorizeButton" class="withIcon" style="display: none;"><i class="material-icons">account_box</i> Log In</button>
+	<button id="signoutButton" class="withIcon" style="display: none;"><i class="material-icons">account_box</i> Sign Out</button>
 </div>
 
-<div id="content">Loading...</div>
+<div id="descriptionSection" style="display: none;">
+	<p>PolyForest® Time is a no-frills time tracking utility that logs time to your <a href="https://drive.google.com"><img src="https://firebasestorage.googleapis.com/v0/b/drive-assets.google.com.a.appspot.com/o/Asset%20-%20Google%20Drive%20Lockup.svg?alt=media&token=4649c767-bee1-4da5-a242-713857615034" style="height: 40px; margin-bottom: -11px;" alt="Google Drive"></a></p>
+	<p><a href="javascript:handleAuthClick();">Log In</a> to your Google account in order to quickly create time sheets.</p>
+
+</div>
+<div id="content"><h3>Loading...</h3></div>
 <div id="error"></div>
 
 <script src="main.js"></script>
@@ -45,5 +52,8 @@
 	});
 </script>
 
+<footer>
+	<a href="https://polyforest.com">Copyright 2020 Poly Forest, LLC.</a> <a href="tos.html">Terms of Service</a> <a href="privacypolicy.html">Privacy Policy</a>
+</footer>
 </body>
 </html>

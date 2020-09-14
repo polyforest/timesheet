@@ -16,8 +16,9 @@ const DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v
 // included, separated by spaces.
 const SCOPES = ["drive.file"].map(s => `https://www.googleapis.com/auth/${s}`).join(" ")
 
-const authorizeButton = document.getElementById('authorize_button');
-const signoutButton = document.getElementById('signout_button');
+const authorizeButton = document.getElementById('authorizeButton');
+const signoutButton = document.getElementById('signoutButton');
+const descriptionSection = document.getElementById('descriptionSection');
 
 /**
  * Returns a reference to the first object with the specified value of the ID or NAME attribute.
@@ -67,10 +68,12 @@ async function initClient() {
 function updateSignInStatus(isSignedIn) {
 	state.isSignedIn = isSignedIn;
 	if (isSignedIn) {
+		signoutButton.style.removeProperty("display");
 		authorizeButton.style.display = 'none';
-		signoutButton.style.display = 'block';
+		descriptionSection.style.display = 'none';
 	} else {
-		authorizeButton.style.display = 'block';
+		authorizeButton.style.removeProperty("display");
+		descriptionSection.style.removeProperty("display");
 		signoutButton.style.display = 'none';
 		localStorage.removeItem("lastLocation");
 	}

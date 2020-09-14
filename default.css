@@ -2,6 +2,30 @@ body {
 	background-color: #fcfbf6;
 }
 
+body, button, input, select, textarea, th {
+	font-family: 'Open Sans', sans-serif;
+	font-size: 19px;
+	font-weight: 300;
+	color: #241e12;
+}
+
+
+a, a:visited {
+	text-decoration: none;
+}
+
+a {
+	color: #935718;
+}
+
+a:visited {
+	color: #422008;
+}
+
+a:hover {
+	color: #e2811a;
+}
+
 button {
 	background-color: #4CAF50;
 	border: none;
@@ -9,7 +33,6 @@ button {
 	padding: 7px 12px;
 	text-align: center;
 	text-decoration: none;
-	display: inline-block;
 	font-size: 16px;
 	margin: 4px 2px;
 	cursor: pointer;
@@ -17,20 +40,26 @@ button {
 	box-shadow: 2px 2px 5px #0007;
 }
 
-body, button, input, select, textarea {
-	font-family: 'Open Sans', sans-serif;
-	font-size: 19px;
-	font-weight: 300;
+.withIcon {
+	display: inline-flex;
+	align-items: center
 }
 
-h1, h2, h3, h4 {
+.withIcon > i {
+	margin-right: 6px;
+}
+
+h1, h2, h3, h4, th {
 	font-weight: 400;
 	margin-block-start: 0.3em;
 	margin-block-end: 0.3em;
 }
 
+#descriptionSection {
+	padding: 10px;
+}
 
-#authorize_button, #signout_button {
+#authorizeButton, #signoutButton {
 }
 
 #auth {
@@ -41,10 +70,12 @@ h1, h2, h3, h4 {
 
 .appTitle {
 	flex-grow: 1;
+	align-self: center;
 }
 
 #content {
 	position: relative;
+	padding:  10px;
 }
 
 #error {
@@ -108,7 +139,7 @@ table, tr, th, td {
 }
 
 .panel {
-	background-color: antiquewhite;
+	background-color: #f7edd9;
 	padding: 10px;
 	border-radius: 8px;
 	border: thin solid black;
@@ -131,4 +162,20 @@ form > label {
 
 .controls > * {
 	margin: 5px;
+}
+
+footer {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 5px;
+	text-align: center;
+	font-size: 0.8em;
+	background-color: #e0cda8;
+	box-shadow: 0 -2px 2px #b4aea357;
+}
+
+footer a {
+	margin: 4px 16px;
 }
