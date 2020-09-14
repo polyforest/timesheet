@@ -121,11 +121,32 @@ async function refreshTimesheet(spreadsheetId) {
 function updateTimesheetRowsUi(rows) {
 	const tableBody = query("#timesheetTable > tbody");
 	tableBody.innerHTML = ""
+
+	const categoriesList = /** @type {HTMLDataListElement} */ (ele("categoriesList"));
+
+	const existingOptions = {};
+	for (let i = 0; i < categoriesList.options.length; i++) {
+		const option = categoriesList.options[i];
+		existingOptions[option.value.toLowerCase()] = true;
+	}
+
 	if (rows !== undefined) {
 		for (let i = 0; i < rows.length; i++) {
 			const row = rows[i];
 			const tr = createTimeRow(i, row);
 			tableBody.appendChild(tr);
+
+			// Update unique categories
+			const category = row[3];
+			if (!!category) {
+				const key = category.toLowerCase();
+				if (!existingOptions.hasOwnProperty(key)) {
+					existingOptions[key] = true;
+					const newOption = /** @type HTMLOptionElement */ document.createElement("option");
+					newOption.value = category;
+					categoriesList.appendChild(newOption);
+				}
+			}
 		}
 	}
 }
@@ -141,8 +162,6 @@ async function stopTimerClickedHandler(spreadsheetId) {
 	updateTimerUi(null);
 	await utils.updateStartTime(spreadsheetId, null);
 }
-
-
 
 /**
  *
@@ -233,13 +252,9 @@ async function editSheet(spreadsheetId) {
 			<div id="duration"></div>
 
 			<label for="category">Category</label>
-			<input list="categories" id="category">
-			<datalist id="categories">
-				<option value="Edge">
-				<option value="Firefox">
-				<option value="Chrome">
-				<option value="Opera">
-				<option value="Safari">
+			<input list="categoriesList" id="category">
+			<datalist id="categoriesList">
+				<option value="test"></option>
 			</datalist>
 			
 			<label for="comment">Comment</label>
