@@ -12,6 +12,6 @@ jobs:
           host: bandbox.dreamhost.com
           username: ${{ secrets.BANDBOX_FTP_USERNAME }}
           password: ${{ secrets.BANDBOX_FTP_PASSWORD }}
-          source: ""
+          source: "./"
           target: "~/time.polyforest.com/"
           strip_components: 0
