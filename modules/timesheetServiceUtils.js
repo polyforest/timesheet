@@ -102,7 +102,7 @@ export async function createTimesheet(title) {
 						userEnteredFormat: {
 							numberFormat: {
 								type: "TIME",
-								pattern: "[h]:mm"
+								pattern: "[h]:mm:ss"
 							}
 						}
 					},
@@ -184,7 +184,7 @@ export async function createTimesheet(title) {
 				[
 					"Start Date",
 					"End Date",
-					"Hours",
+					"Duration",
 					"Category",
 					"Comment"
 				]
@@ -214,7 +214,7 @@ export async function createTimesheet(title) {
 					null,
 					null,
 					"Total Hours:",
-					"=Timesheet!C:C*24"
+					"=SUM(Timesheet!C:C*24)"
 				],
 				// A3:E3
 				[
