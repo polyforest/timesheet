@@ -6,8 +6,8 @@ window.state = {
 };
 
 // Client ID and API key from the Developer Console
-const CLIENT_ID = '797670420941-809rc0un93uh3gmtm8n7sjlfg33e3lfa.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyByQizhldu-iGd6VNe8Dwc27xikf9EpM1k';
+const CLIENT_ID = '221417197712-8q4bi4vf9tlslhginl90n8lbvum6buf9.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyAJenOXk7jOruNuvI_Bjr2VI_Y7eHNpylk';
 
 // Array of API discovery doc URLs for APIs used by the quickstart
 const DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v4', 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
