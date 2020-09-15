@@ -32,7 +32,9 @@ function openNewSpreadsheetForm() {
 async function timesheetsList() {
 	const content = ele("content");
 
-	content.innerHTML = `<button id="newTimesheetButton">Create New Timesheet</button>
+	content.innerHTML = `
+
+<div class="documentInfoBar"><h2>All Timesheets</h2><a id="documentLink"><img src="images/drive.svg"></a> </div>
 <div id="newSpreadsheetContainer" style="display: none" class="modal">
 	<div class="panel">
 		<div class="titleBar">
@@ -46,7 +48,15 @@ async function timesheetsList() {
 			<input type="submit">
 		</form>
 	</div>
-</div>`;
+</div>
+
+<p id="loading">Loading...</p>
+<p id="noTimesheets" style="display: none">You do not currently have any timesheets.</p>
+
+<ul id="timesheetsList"></ul>
+
+<button id="newTimesheetButton">Create New Timesheet</button>
+`;
 
 	ele("newTimesheetButton").onclick = () => {
 		openNewSpreadsheetForm();
@@ -56,11 +66,13 @@ async function timesheetsList() {
 
 	ele("newSpreadsheetForm").onsubmit = newSpreadsheetFormSubmitHandler;
 
-	const ul = document.createElement("ul");
-	content.appendChild(ul);
+	const ul = ele("timesheetsList");
+
 	const timesheetFolderId = await getTimesheetFolderId();
+	ele("documentLink").href = `https://drive.google.com/drive/u/0/folders/${timesheetFolderId}`
+
 	const timesheetsResponse = await gapi.client.drive.files.list({
-		"q": `'${timesheetFolderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+		"q": `mimeType != 'application/vnd.google-apps.folder' and trashed = false`
 	});
 
 	console.debug("timesheetsResponse", timesheetsResponse);
@@ -72,6 +84,9 @@ async function timesheetsList() {
 		a.href = "#sheet/" + timesheet.id;
 		li.appendChild(a);
 	}
+
+	ele("loading").style.display = "none";
+	ele("noTimesheets").style.display = (timesheetsResponse.result.files.length === 0) ? "" : "none";
 }
 
 export default timesheetsList;

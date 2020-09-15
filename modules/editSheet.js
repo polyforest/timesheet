@@ -98,14 +98,18 @@ function updateTimerUi(startTime) {
  * @return {Promise<void>}
  */
 async function refreshTimesheet(spreadsheetId) {
-	 const propertiesPromise = utils.getProperties(spreadsheetId).then((properties) => {
-		 console.log("properties", properties);
-		 const startTime = properties.startTime || null;
-		 updateTimerUi(startTime && new Date(Number(startTime)));
+	const propertiesPromise = utils.getFileMetadata(spreadsheetId).then((response) => {
+		console.log("fileMetadata", response);
+		const properties = response.result.appProperties || {}
+		const startTime = properties.startTime || null;
+		updateTimerUi(startTime && new Date(Number(startTime)));
 
-		 ele("timeResolutionsInput").value = !!properties.timeResolution ? properties.timeResolution.toString() : "4";
-		 appProperties = properties;
-	 });
+		ele("timeResolutionsInput").value = !!properties.timeResolution ? properties.timeResolution.toString() : "4";
+		appProperties = properties;
+
+		ele("title").innerText = response.result.name;
+		ele("documentLink").href = response.result.webViewLink;
+	});
 
 	const valuesResponse = await gapi.client.sheets.spreadsheets.values.get({
 		spreadsheetId: spreadsheetId,
@@ -221,13 +225,9 @@ async function submitTimeEntryFormHandler() {
 	const cat = ele("category").value;
 	const comment = ele("comment").value;
 	modal.closeModal(ele("submitTimeEntryContainer"));
-
 	const tableBody = query("#timesheetTable > tbody");
-	const tr = createTimeRow(tableBody.childElementCount, ["<i class='material-icons'>hourglass_bottom</i>" + formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]);
-	tableBody.appendChild(tr);
 	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
-	await refreshTimesheet(spreadsheetId);
-	// loadDec();
+	tableBody.appendChild(createTimeRow(tableBody.childElementCount, [formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]));
 }
 
 /**
@@ -303,6 +303,7 @@ async function editSheet(spreadsheetId) {
 </div>
 
 <div>
+	<div class="documentInfoBar"><h2 id="title"></h2><a id="documentLink"><img src="images/drive.svg"></a> </div>
 	<p><a href='#list' class="withIcon"><i class="material-icons">keyboard_backspace</i> Back to List</a></p>
 	<div class="controls">
 		<button id="startTimerBtn" class="withIcon" style="display: none;"><i class="material-icons">play_circle_outline</i> Start Timer</button>

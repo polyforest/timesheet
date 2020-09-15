@@ -391,15 +391,16 @@ export function updateStartTime(spreadsheetId, startTime) {
 }
 
 /**
- * Gets the spreadsheet's properties.
+ * Gets the Drive file metadata..
  * @param spreadsheetId
- * @return {Promise<object>} Returns a Promise where the result is the appProperties object.
+ * @return {Promise<*>} Returns a Promise where the result is the drive File metadata.
  */
-export async function getProperties(spreadsheetId) {
-	return (await gapi.client.drive.files.get({
+export async function getFileMetadata(spreadsheetId) {
+	console.log("file meta...");
+	return await gapi.client.drive.files.get({
 		fileId: spreadsheetId,
-		fields: ["appProperties"]
-	})).result.appProperties || {};
+		fields: "appProperties, name, webViewLink"
+	});
 }
 
 /**
@@ -413,17 +414,4 @@ export function updateProperties(spreadsheetId, appProperties) {
 		fileId: spreadsheetId,
 		appProperties: appProperties
 	});
-}
-
-/**
- * Gets the start time metadata on this spreadsheet, if set.
- * @param spreadsheetId
- * @return {Promise<Date | null>}
- */
-export async function getStartTime(spreadsheetId) {
-	const appProperties = await getProperties(spreadsheetId);
-	console.debug("appProperties", appProperties);
-	const time = appProperties.startTime;
-	if (!time) return null;
-	else return new Date(Number(time));
 }
