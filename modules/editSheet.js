@@ -73,23 +73,37 @@ function updateTimerUi(startTime) {
 	if (startTime == null) {
 		startTimerBtn.style.display = "";
 		stopTimerBtn.style.display = "none";
-		window.clearInterval(timer.updateIntervalId);
-		timer.updateIntervalId = -1;
 		timerDisplay.innerText = "";
+		stopWindowInterval();
 	} else {
 		startTimerBtn.style.display = "none";
 		stopTimerBtn.style.display = "";
 
 		if (timer.updateIntervalId === -1) {
 			timer.updateIntervalId = window.setInterval(() => {
-				const elapsedS = Math.floor((Date.now() - startTime) / 1000);
-				const h = Math.floor(elapsedS / 3600);
-				const m = Math.floor((elapsedS % 3600) / 60);
-				const s = Math.floor(elapsedS % 60);
-				timerDisplay.innerText = pad(h, 2) + ":" + pad(m, 2) + ":" + pad(s, 2);
+				refreshTime();
 			}, 1000);
 		}
+		refreshTime();
 	}
+}
+
+function refreshTime() {
+	const timerDisplay = ele("timerDisplay");
+	if (timerDisplay == null || timer.startTime == null) {
+		stopWindowInterval();
+		return;
+	}
+	const elapsedS = Math.floor((Date.now() - timer.startTime) / 1000);
+	const h = Math.floor(elapsedS / 3600);
+	const m = Math.floor((elapsedS % 3600) / 60);
+	const s = Math.floor(elapsedS % 60);
+	timerDisplay.innerText = pad(h, 2) + ":" + pad(m, 2) + ":" + pad(s, 2);
+}
+
+function stopWindowInterval() {
+	window.clearInterval(timer.updateIntervalId);
+	timer.updateIntervalId = -1;
 }
 
 /**
