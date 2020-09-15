@@ -6,11 +6,15 @@ import * as modal from "./modal.js"
  */
 function newSpreadsheetFormSubmitHandler() {
 	const name = ele("spreadSheetName").value;
+	console.log(`Creating timesheet '${name}'`);
+	loadInc();
 	createTimesheet(name).then((spreadsheetId) => {
 		console.log("Created timesheet", spreadsheetId);
 		window.location.href = `#sheet/${spreadsheetId}`;
 	}, (e) => {
 		uncaughtErrorHandler(e);
+	}).finally(()=> {
+		loadDec();
 	});
 	modal.closeModal(ele("newSpreadsheetContainer"));
 	return false;

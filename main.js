@@ -2,7 +2,8 @@
 
 window.state = {
 	isSignedIn: false,
-	pageToken: -1
+	pageToken: -1,
+	loading: 0
 };
 
 // Client ID and API key from the Developer Console
@@ -110,6 +111,28 @@ async function listView() {
 }
 
 /**
+ * Indicates that something has begun loading that takes time.
+ * If state.loading > 0, a progress bar will be shown at the top of the screen.
+ */
+function loadInc() {
+	if (state.loading === 0) {
+		ele("mainProgressBar").style.display = "";
+	}
+	state.loading++;
+}
+
+/**
+ * Indicates that something has finished loading.
+ * If state.loading = 0, the progress bar will be removed.
+ */
+function loadDec() {
+	state.loading--;
+	if (state.loading === 0) {
+		ele("mainProgressBar").style.display = "none";
+	}
+}
+
+/**
  * Routes url hashbang changes to their appropriate views.
  */
 function router() {
@@ -133,7 +156,10 @@ function router() {
 	} else {
 		localStorage.setItem("lastLocation", location.hash);
 	}
-	view(location.hash).catch(uncaughtErrorHandler);
+	loadInc();
+	view(location.hash).catch(uncaughtErrorHandler).finally(() => {
+		loadDec();
+	});
 }
 
 window.addEventListener('hashchange', router, false);

@@ -8,6 +8,7 @@ body {
 	height: 100vh;
 	display:flex;
 	flex-direction:column;
+	min-width:  460px;
 }
 
 footer {
@@ -89,6 +90,7 @@ h1, h2, h3, h4, th {
 }
 
 #authorizeButton, #signoutButton {
+	margin: 16px;
 }
 
 #auth {
@@ -108,19 +110,28 @@ h1, h2, h3, h4, th {
 	margin-bottom: 50px;
 }
 
+li {
+	margin: 10px;
+}
+
 #error {
 	color: #800;
 }
 
-#timesheetTableContainer {
+td, th {
+	padding: 6px;
+}
+
+table {
+	border-collapse: collapse;
 }
 
 table, tr, th, td {
-	border: thin solid black;
+	border: thin solid #837c7b;
 }
 
-#timesheetTable {
-	border-collapse: collapse;
+tr:nth-child(even) {
+	background-color: #f8f5eb
 }
 
 #timesheetTable > tbody > tr:hover {
@@ -172,7 +183,7 @@ table, tr, th, td {
 	background-color: #f7edd9;
 	padding: 10px;
 	border-radius: 8px;
-	border: thin solid black;
+	border: thin solid #241e12;
 	box-shadow: 5px 5px 15px #0008;
 	max-width: 250px;
 }
@@ -188,8 +199,66 @@ form > label {
 
 .controls {
 	display: flex;
+	align-items: center;
 }
 
 .controls > * {
 	margin: 5px;
+}
+
+/* Indeterminate progress bar thanks to https://codepen.io/shalimano/pen/wBmNGJ */
+.progressBar {
+	position: fixed;
+	top: 0;
+	width: 100%;
+	height: 3px;
+	overflow: hidden;
+	--color: #702e21;
+}
+
+.progressBar .line1 {
+	position: fixed;
+	top: 0;
+	z-index: 100;
+	opacity: 0.4;
+	background: var(--color);
+	width: 150%;
+	height: 3px;
+}
+
+.progressBar .line2 {
+	position: fixed;
+	top: 0;
+	background: var(--color);
+	height: 3px;
+}
+
+.inc {
+	animation: increase 2s infinite;
+}
+
+.dec {
+	animation: decrease 2s 0.5s infinite;
+}
+
+@keyframes increase {
+	from {
+		left: -5%;
+		width: 5%;
+	}
+	to {
+		left: 130%;
+		width: 100%;
+	}
+}
+
+@keyframes decrease {
+	from {
+		left: -80%;
+		width: 80%;
+	}
+	to {
+		left: 110%;
+		width: 10%;
+	}
 }

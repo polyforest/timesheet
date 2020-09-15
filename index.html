@@ -16,6 +16,12 @@
 </head>
 <body>
 
+<div id="mainProgressBar" class="progressBar" style="display: none;">
+	<div class="line1"></div>
+	<div class="line2 inc"></div>
+	<div class="line2 dec"></div>
+</div>
+
 <div id="auth">
 	<img src="favicon.svg" style="height: 70px">
 	<h3 class="appTitle">PolyForest&reg; Time</h3>
@@ -31,6 +37,12 @@
 </div>
 <div id="content"><h3>Loading...</h3></div>
 <div id="error"></div>
+
+<footer>
+	<a href="https://polyforest.com">Copyright 2020 Poly Forest, LLC.</a> <a href="tos.html">Terms of Service</a> <a href="privacypolicy.html">Privacy Policy</a>
+</footer>
+</body>
+
 
 <script src="main.js"></script>
 
@@ -51,9 +63,4 @@
 		initClient().catch(uncaughtErrorHandler)
 	});
 </script>
-
-<footer>
-	<a href="https://polyforest.com">Copyright 2020 Poly Forest, LLC.</a> <a href="tos.html">Terms of Service</a> <a href="privacypolicy.html">Privacy Policy</a>
-</footer>
-</body>
 </html>

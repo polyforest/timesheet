@@ -84,7 +84,8 @@ export async function createTimesheet(title) {
 					cell: {
 						userEnteredFormat: {
 							numberFormat: {
-								type: "DATE_TIME"
+								type: "DATE_TIME",
+								pattern: "yyyy-mm-dd hh:mm:ss"
 							}
 						}
 					},
@@ -374,7 +375,7 @@ export async function appendTimeEntry(spreadsheetId, startTime, endTime, categor
  * @param date Date
  */
 export function dateTimeFormula(date) {
-	return `=DATE(${date.getFullYear()}, ${date.getMonth() + 1}, ${date.getDate()}) + TIME(${date.getHours()}, ${date.getMinutes()}, ${date.getSeconds()})`
+	return `=DATE(${date.getUTCFullYear()}, ${date.getUTCMonth() + 1}, ${date.getUTCDate()}) + TIME(${date.getUTCHours()}, ${date.getUTCMinutes()}, ${date.getUTCSeconds()})`
 }
 
 /**

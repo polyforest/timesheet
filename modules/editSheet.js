@@ -164,6 +164,36 @@ async function stopTimerClickedHandler(spreadsheetId) {
 }
 
 /**
+ * Formats a date as yyyy-mm-dd, according to https://xkcd.com/1179/
+ *
+ * @param date {Date}
+ * @return {string}
+ */
+function formatDate(date) {
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${pad(date.getDate(), 2)}`
+}
+
+/**
+ * Formats a time as hh:mm:ss (24 hour format)
+ *
+ * @param time {Date}
+ * @return {string}
+ */
+function formatTime(time) {
+	return `${pad(time.getHours(), 2)}:${pad(time.getMinutes(), 2)}:${pad(time.getSeconds(), 2)}`;
+}
+
+/**
+ * Formats a UTC datetime as yyyy-mm-dd hh:mm:ss (24 hour format)
+ *
+ * @param date {Date}
+ * @return {string}
+ */
+function formatUtcDateTime(date) {
+	return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1, 2)}-${pad(date.getUTCDate(), 2)} ${pad(date.getUTCHours(), 2)}:${pad(date.getUTCMinutes(), 2)}:${pad(date.getUTCSeconds(), 2)}`
+}
+
+/**
  *
  * @param spreadsheetId {String}
  * @param rowId {number}
@@ -175,10 +205,10 @@ async function stopTimerClickedHandler(spreadsheetId) {
 function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comment) {
 	ele("spreadsheetId").value = spreadsheetId;
 	ele("rowId").value = rowId;
-	ele("dateStart").value = `${startTime.getFullYear()}-${pad(startTime.getMonth() + 1, 2)}-${pad(startTime.getDate(), 2)}`;
-	ele("timeStart").value = `${pad(startTime.getHours(), 2)}:${pad(startTime.getMinutes(), 2)}:${pad(startTime.getSeconds(), 2)}`;
-	ele("dateEnd").value = `${endTime.getFullYear()}-${pad(endTime.getMonth() + 1, 2)}-${pad(endTime.getDate(), 2)}`;
-	ele("timeEnd").value = `${pad(endTime.getHours(), 2)}:${pad(endTime.getMinutes(), 2)}:${pad(endTime.getSeconds(), 2)}`;
+	ele("dateStart").value = formatDate(startTime);
+	ele("timeStart").value = formatTime(startTime);
+	ele("dateEnd").value = formatDate(endTime);
+	ele("timeEnd").value = formatTime(endTime);
 
 	modal.openModal(ele("submitTimeEntryContainer"));
 	updateDuration();
@@ -192,8 +222,12 @@ async function submitTimeEntryFormHandler() {
 	const comment = ele("comment").value;
 	modal.closeModal(ele("submitTimeEntryContainer"));
 
+	const tableBody = query("#timesheetTable > tbody");
+	const tr = createTimeRow(tableBody.childElementCount, ["<i class='material-icons'>hourglass_bottom</i>" + formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]);
+	tableBody.appendChild(tr);
 	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
 	await refreshTimesheet(spreadsheetId);
+	// loadDec();
 }
 
 /**
@@ -238,14 +272,16 @@ async function editSheet(spreadsheetId) {
 			<label for="timeEnd">Time End</label>
 			<input type="time" id="timeEnd" step="1" required>
 			
-			<label for="timeResolutionsInput">Time Rounding:</label>
+			<label for="timeResolutionsInput">Round Time to Next:</label>
 			<select name="timeResolutionsInput" id="timeResolutionsInput">
 				<option value="3600"/>
-				0:00:01</option>
-				<option value="60">0:01</option>
-				<option value="4" selected>0:15</option>
-				<option value="2">0:30</option>
-				<option value="1">1:00</option>
+				1s</option>
+				<option value="60">1m</option>
+				<option value="12">5m</option>
+				<option value="6">10m</option>
+				<option value="4" selected>15m</option>
+				<option value="2">30m</option>
+				<option value="1">1hr</option>
 			</select>
 			
 			<label>Duration</label>
@@ -304,7 +340,10 @@ async function editSheet(spreadsheetId) {
 
 	const submitForm = ele("submitTimeEntryForm");
 	submitForm.onsubmit = (e) => {
-		submitTimeEntryFormHandler();
+		loadInc();
+		submitTimeEntryFormHandler().finally(()=> {
+			loadDec();
+		});
 		return false;
 	};
 	submitForm.querySelectorAll("input,select").forEach((input) => {
