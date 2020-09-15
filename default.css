@@ -1,5 +1,34 @@
+html {
+	height: 100%;
+}
+
 body {
 	background-color: #fcfbf6;
+	margin: 0;
+	height: 100vh;
+	display:flex;
+	flex-direction:column;
+}
+
+footer {
+	margin-top: auto;
+	display: flex;
+	justify-content: center;
+	padding: 5px;
+	text-align: center;
+	font-size: 0.8em;
+	background-color: #e0cda8;
+	box-shadow: 0 -2px 2px #b4aea357;
+}
+
+@media only screen and (max-width: 500px) {
+	footer {
+		flex-direction: column;
+	}
+}
+
+footer a {
+	margin: 4px 16px;
 }
 
 body, button, input, select, textarea, th {
@@ -76,6 +105,7 @@ h1, h2, h3, h4, th {
 #content {
 	position: relative;
 	padding:  10px;
+	margin-bottom: 50px;
 }
 
 #error {
@@ -162,20 +192,4 @@ form > label {
 
 .controls > * {
 	margin: 5px;
-}
-
-footer {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	padding: 5px;
-	text-align: center;
-	font-size: 0.8em;
-	background-color: #e0cda8;
-	box-shadow: 0 -2px 2px #b4aea357;
-}
-
-footer a {
-	margin: 4px 16px;
 }
