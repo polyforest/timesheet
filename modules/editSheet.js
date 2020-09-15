@@ -45,11 +45,11 @@ function createTimeRow(index, row) {
 
 	const commentsTd = document.createElement("td");
 	commentsTd.innerHTML = row[4] || "";
-	//commentsTd.tabIndex = 0;
-	commentsTd.onfocus = () => {
-
-	}
 	tr.appendChild(commentsTd);
+
+	tr.onclick = () => {
+		openSubmitForm(ele("spreadsheetId").value, index, new Date(Date.parse(startTimeTd.innerText)), new Date(Date.parse(endTimeTd.innerText)), categoryTd.innerText, commentsTd.innerText);
+	}
 
 	return tr;
 }
@@ -213,12 +213,15 @@ function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comm
 	ele("timeStart").value = formatTime(startTime);
 	ele("dateEnd").value = formatDate(endTime);
 	ele("timeEnd").value = formatTime(endTime);
+	ele("category").value = category || "";
+	ele("comment").value = comment || "";
 
 	modal.openModal(ele("submitTimeEntryContainer"));
 	updateDuration();
 }
 
 async function submitTimeEntryFormHandler() {
+	const rowId = parseInt(ele("rowId").value);
 	const startTime = new Date(ele("dateStart").valueAsNumber + ele("timeStart").valueAsNumber);
 	const endTime = new Date(ele("dateEnd").valueAsNumber + ele("timeEnd").valueAsNumber);
 	const spreadsheetId = ele("spreadsheetId").value;
@@ -226,8 +229,15 @@ async function submitTimeEntryFormHandler() {
 	const comment = ele("comment").value;
 	modal.closeModal(ele("submitTimeEntryContainer"));
 	const tableBody = query("#timesheetTable > tbody");
-	await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
-	tableBody.appendChild(createTimeRow(tableBody.childElementCount, [formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]));
+	if (rowId === -1) {
+		await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
+		tableBody.appendChild(createTimeRow(tableBody.childElementCount, [formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]));
+	} else {
+		await utils.updateTimeEntry(spreadsheetId, rowId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
+		const previousRow = tableBody.childNodes[rowId];
+		tableBody.insertBefore(createTimeRow(rowId, [formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]), previousRow);
+		tableBody.removeChild(previousRow);
+	}
 }
 
 /**
@@ -259,7 +269,7 @@ async function editSheet(spreadsheetId) {
 			<div class="close">&times;</div>
 		</div>
 		<form id="submitTimeEntryForm">
-			<input type="hidden" id="spreadsheetId">
+			<input type="hidden" id="spreadsheetId" value="${spreadsheetId}">
 			<input type="hidden" id="rowId" value="-1">
 			
 			<label for="dateStart">Date Start</label>

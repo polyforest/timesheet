@@ -292,7 +292,7 @@ export async function getTimesheetFolderId() {
 
 /**
  * Appends a new start time to the timesheet.
- * This will be an incomplete row with just the start time column set until stop is called.
+ *
  * @param spreadsheetId String
  * @param startTime Date
  * @param endTime Date
@@ -308,7 +308,7 @@ export async function appendTimeEntry(spreadsheetId, startTime, endTime, categor
 
 		// The A1 notation of a range to search for a logical table of data.
 		// Values are appended after the last row of the table.
-		range: `A1:E1`,
+		range: "A1:E1",
 
 		// How the input data should be interpreted.
 		valueInputOption: 'USER_ENTERED',
@@ -338,7 +338,6 @@ export async function appendTimeEntry(spreadsheetId, startTime, endTime, categor
 	// update call.
 	const updatedRange = appendResponse.result.updates.updatedRange;
 	const row = parseInt(updatedRange.substr(updatedRange.lastIndexOf(":E") + 2));
-	console.log(row);
 
 	const updateRequest = {
 		// The ID of the spreadsheet to update.
@@ -368,6 +367,50 @@ export async function appendTimeEntry(spreadsheetId, startTime, endTime, categor
 
 	const updateResponse = (await gapi.client.sheets.spreadsheets.values.update(updateRequest));
 	console.debug("Update formula", updateResponse);
+}
+
+/**
+ * Updates an existing timesheet entry.
+ *
+ * @param spreadsheetId String
+ * @param rowIndex The index of the time row being updated. This is zero indexed, not counting the header row.
+ * @param startTime Date
+ * @param endTime Date
+ * @param category String A short string categorizing the time entry's sub-project.
+ * @param comment String
+ * @param timeResolution number
+ * @return {Promise<void>}
+ */
+export async function updateTimeEntry(spreadsheetId, rowIndex, startTime, endTime, category, comment, timeResolution) {
+	const row = rowIndex + 2;
+	const updateRequest = {
+		// The ID of the spreadsheet to update.
+		spreadsheetId: spreadsheetId,
+
+		// The A1 notation of a range to search for a logical table of data.
+		// Values are appended after the last row of the table.
+		range: `A${row}:E${row}`,
+
+		// How the input data should be interpreted.
+		valueInputOption: 'USER_ENTERED',
+
+		includeValuesInResponse: false,
+
+		resource: {
+			values: [
+				[
+					dateTimeFormula(startTime),
+					dateTimeFormula(endTime),
+					`=CEILING((B${row}-A${row}), 1 / 24 / ${timeResolution})`,
+					category,
+					comment
+				]
+			]
+		}
+	};
+
+	const updateResponse = (await gapi.client.sheets.spreadsheets.values.update(updateRequest));
+	console.debug("Update time entry", updateResponse);
 }
 
 /**
