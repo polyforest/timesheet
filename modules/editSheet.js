@@ -3,6 +3,24 @@ import * as modal from "./modal.js"
 
 let appProperties = {};
 
+/**
+ * Safari in OSX doesn't support date or inputs
+ * @type {RegExp}
+ */
+const DATE_REGEX = /([\d]{4})[-/.]([\d]{1,2})[-/.]([\d]{1,2})/
+
+/**
+ * Safari in OSX doesn't support date or inputs
+ * @type {RegExp}
+ */
+const TIME_REGEX = /([\d]{1,2}):([\d]{2})(:[\d]{2})?([\s]*(?:AM|PM))?/i
+
+// Safari in OSX doesn't support date or inputs
+const DATE_FALLBACK = `placeholder="yyyy-mm-dd" pattern="${DATE_REGEX.source}" title="Date should be in the format: yyyy-mm-dd"`;
+
+// Safari in OSX doesn't support date or inputs
+const TIME_FALLBACK = `placeholder="h:mm:ss" pattern="${TIME_REGEX.source}" title="Time should be in the format: h:mm:ss"`;
+
 const timer = {
 
 	/**
@@ -48,7 +66,7 @@ function createTimeRow(index, row) {
 	tr.appendChild(commentsTd);
 
 	tr.onclick = () => {
-		openSubmitForm(ele("spreadsheetId").value, index, new Date(Date.parse(startTimeTd.innerText)), new Date(Date.parse(endTimeTd.innerText)), categoryTd.innerText, commentsTd.innerText);
+		openSubmitForm(ele("spreadsheetId").value, index, new Date(parseDateTime(startTimeTd.innerText)), new Date(parseDateTime(endTimeTd.innerText)), categoryTd.innerText, commentsTd.innerText);
 	}
 
 	return tr;
@@ -113,7 +131,7 @@ function stopWindowInterval() {
  */
 async function refreshTimesheet(spreadsheetId) {
 	const propertiesPromise = utils.getFileMetadata(spreadsheetId).then((response) => {
-		console.log("fileMetadata", response);
+		console.debug("fileMetadata", response);
 		const properties = response.result.appProperties || {}
 		const startTime = properties.startTime || null;
 		updateTimerUi(startTime && new Date(Number(startTime)));
@@ -234,10 +252,55 @@ function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comm
 	updateDuration();
 }
 
+/**
+ * Returns the value of a date input.
+ * @param id String the ID of the HTMLInputElement to parse.
+ * @return number | null
+ */
+function dateInput(id) {
+	const input = /** @type {HTMLInputElement} */ ele(id);
+	if (input.valueAsNumber > 0) return input.valueAsNumber;
+	return parseDate(input.value);
+}
+
+function parseDate(str) {
+	const groups = DATE_REGEX.exec(str);
+	if (groups == null) return null;
+	return (new Date(parseInt(groups[1]), parseInt(groups[2]) - 1, parseInt(groups[3]))).getTime();
+}
+
+/**
+ * Returns the value of a time  input.
+ * @param id String the ID of the HTMLInputElement to parse.
+ * @return number | null
+ */
+function timeInput(id) {
+	const input = /** @type {HTMLInputElement} */ ele(id);
+	if (input.valueAsNumber > 0) return input.valueAsNumber;
+	return parseTime(input.value);
+}
+
+function parseTime(str) {
+	const groups = TIME_REGEX.exec(str);
+	if (groups == null) return null;
+	const isPm = groups[4] !== undefined && groups[4].toLowerCase() === "pm"
+	const hours = parseInt(groups[1]) + ((isPm) ? 12 : 0);
+	const minutes = parseInt(groups[2]);
+	const seconds = parseInt(groups[3].substr(1) || 0);
+	return hours * 3600000 + minutes * 60000 + seconds * 1000;
+}
+
+function parseDateTime(str) {
+	const splitIndex = str.indexOf(" ");
+	const dateStr = str.substring(0, splitIndex);
+	const timeStr = str.substring(splitIndex + 1);
+	return parseDate(dateStr) + parseTime(timeStr);
+}
+
 async function submitTimeEntryFormHandler() {
 	const rowId = parseInt(ele("rowId").value);
-	const startTime = new Date(ele("dateStart").valueAsNumber + ele("timeStart").valueAsNumber);
-	const endTime = new Date(ele("dateEnd").valueAsNumber + ele("timeEnd").valueAsNumber);
+	const startTime = new Date(dateInput("dateStart") + timeInput("timeStart"));
+	const endTime = new Date(dateInput("dateEnd") + timeInput("timeEnd"));
 	const spreadsheetId = ele("spreadsheetId").value;
 	const cat = ele("category").value;
 	const comment = ele("comment").value;
@@ -258,7 +321,7 @@ async function submitTimeEntryFormHandler() {
  * Sets the duration display to be the time difference rounded to the next time resolution value.
  */
 function updateDuration() {
-	const deltaS = (ele("dateEnd").valueAsNumber + ele("timeEnd").valueAsNumber - (ele("dateStart").valueAsNumber + ele("timeStart").valueAsNumber)) / 1000;
+	const deltaS = (dateInput("dateEnd") + timeInput("timeEnd") - (dateInput("dateStart") + timeInput("timeStart"))) / 1000;
 	const round = 3600 / parseInt(ele("timeResolutionsInput").value);
 	const duration = Math.ceil(deltaS / round) * round;
 	const hours = Math.floor(duration / 3600);
@@ -287,14 +350,14 @@ async function editSheet(spreadsheetId) {
 			<input type="hidden" id="rowId" value="-1">
 			
 			<label for="dateStart">Date Start</label>
-			<input type="date" id="dateStart" required>
+			<input type="date" id="dateStart" required ${DATE_FALLBACK}>
 			<label for="timeStart">Time Start</label>
-			<input type="time" id="timeStart" step="1" required>
+			<input type="time" id="timeStart" step="1" required ${TIME_FALLBACK}>
 
 			<label for="dateEnd">Date End</label>
-			<input type="date" id="dateEnd" required>
+			<input type="date" id="dateEnd" required ${DATE_FALLBACK}>
 			<label for="timeEnd">Time End</label>
-			<input type="time" id="timeEnd" step="1" required>
+			<input type="time" id="timeEnd" step="1" required ${TIME_FALLBACK}>
 			
 			<label for="timeResolutionsInput">Round Time to Next:</label>
 			<select name="timeResolutionsInput" id="timeResolutionsInput">
@@ -303,7 +366,7 @@ async function editSheet(spreadsheetId) {
 				<option value="60">1m</option>
 				<option value="12">5m</option>
 				<option value="6">10m</option>
-				<option value="4" selected>15m</option>
+				<option value="4">15m</option>
 				<option value="2">30m</option>
 				<option value="1">1hr</option>
 			</select>
@@ -356,7 +419,6 @@ async function editSheet(spreadsheetId) {
 
 	const timeResolutionsInput = ele("timeResolutionsInput");
 	timeResolutionsInput.onchange = async (e) => {
-		console.log(timeResolutionsInput.value);
 		appProperties.timeResolution = parseInt(timeResolutionsInput.value);
 		await utils.updateProperties(spreadsheetId, { timeResolution: timeResolutionsInput.value });
 	}
