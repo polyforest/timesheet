@@ -40,9 +40,10 @@ const timer = {
  * Creates a timesheet row.
  * This row should then be added to the spreadsheet table's body.
  *
+ * @param row {Array<string | null>}
  * @return {HTMLTableRowElement}
  */
-function createTimeRow(index, row) {
+function createTimeRow(row) {
 	const tr = document.createElement("tr");
 
 	const startTimeTd = document.createElement("td");
@@ -66,6 +67,7 @@ function createTimeRow(index, row) {
 	tr.appendChild(commentsTd);
 
 	tr.onclick = () => {
+		const index = Array.prototype.indexOf.call(tr.parentNode.children, tr);
 		openSubmitForm(ele("spreadsheetId").value, index, new Date(parseDateTime(startTimeTd.innerText)), new Date(parseDateTime(endTimeTd.innerText)), categoryTd.innerText, commentsTd.innerText);
 	}
 
@@ -168,7 +170,7 @@ function updateTimesheetRowsUi(rows) {
 	if (rows !== undefined) {
 		for (let i = 0; i < rows.length; i++) {
 			const row = rows[i];
-			const tr = createTimeRow(i, row);
+			const tr = createTimeRow(row);
 			tableBody.appendChild(tr);
 
 			// Update unique categories
@@ -309,13 +311,13 @@ async function submitTimeEntryFormHandler() {
 
 	const tableBody = query("#timesheetTable > tbody");
 	if (rowId === -1) {
+		tableBody.appendChild(createTimeRow([formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]));
 		await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
-		tableBody.appendChild(createTimeRow(tableBody.childElementCount, [formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]));
 	} else {
-		await utils.updateTimeEntry(spreadsheetId, rowId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
 		const previousRow = tableBody.childNodes[rowId];
-		tableBody.insertBefore(createTimeRow(rowId, [formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]), previousRow);
+		tableBody.insertBefore(createTimeRow([formatUtcDateTime(startTime), formatUtcDateTime(endTime), ele("duration").innerText, cat, comment]), previousRow);
 		tableBody.removeChild(previousRow);
+		await utils.updateTimeEntry(spreadsheetId, rowId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
 	}
 }
 
