@@ -458,3 +458,24 @@ export function updateProperties(spreadsheetId, appProperties) {
 		appProperties: appProperties
 	});
 }
+
+export async function deleteRow(spreadsheetId, rowIndex) {
+	const request = {
+		spreadsheetId: spreadsheetId,
+		requests: [
+			{
+				deleteRange: {
+					range: {
+						startRowIndex: rowIndex + 1,
+						endRowIndex: rowIndex + 2,
+						startColumnIndex: 0
+					},
+					shiftDimension: "ROWS"
+				}
+			}
+		]
+	};
+	const deleteResponse = await gapi.client.sheets.spreadsheets.batchUpdate(request);
+	console.debug("deleteResponse", deleteResponse);
+	return deleteResponse;
+}

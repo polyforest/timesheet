@@ -240,9 +240,15 @@ function formatUtcDateTime(date) {
  * @param comment {String}
  */
 function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comment) {
-	ele("submitTimeEntryTitle").innerText = (rowId === -1) ? "New Time Entry" : "Edit Time Entry"
+	const isNewEntry = (rowId === -1);
+	ele("submitTimeEntryTitle").innerText = (isNewEntry) ? "New Time Entry" : "Edit Time Entry"
 	ele("spreadsheetId").value = spreadsheetId;
 	ele("rowId").value = rowId;
+	if (isNewEntry) {
+		ele("deleteEntryLink").style.display = "none";
+	} else {
+		ele("deleteEntryLink").style.removeProperty("display");
+	}
 	ele("dateStart").value = formatDate(startTime);
 	ele("timeStart").value = formatTime(startTime);
 	ele("dateEnd").value = formatDate(endTime);
@@ -322,6 +328,19 @@ async function submitTimeEntryFormHandler() {
 }
 
 /**
+ * Deletes the given time entry row.
+ * @param spreadsheetId string
+ * @param rowId number (zero-indexed)
+ * @return {Promise<void>}
+ */
+async function deleteRow(spreadsheetId, rowId) {
+	console.log("Deleting row " + rowId);
+	const tableBody = query("#timesheetTable > tbody");
+	tableBody.removeChild(tableBody.childNodes[rowId]);
+	await utils.deleteRow(spreadsheetId, rowId);
+}
+
+/**
  * Sets the duration display to be the time difference rounded to the next time resolution value.
  */
 function updateDuration() {
@@ -349,6 +368,7 @@ async function editSheet(spreadsheetId) {
 			<div id="submitTimeEntryTitle" class="label"></div>
 			<div class="close">&times;</div>
 		</div>
+		<a id="deleteEntryLink" class="withIcon" style="cursor: pointer; margin-top: 7px;"><i class="material-icons">delete</i> Delete Entry</a>
 		<form id="submitTimeEntryForm">
 			<input type="hidden" id="spreadsheetId" value="${spreadsheetId}">
 			<input type="hidden" id="rowId" value="-1">
@@ -437,6 +457,14 @@ async function editSheet(spreadsheetId) {
 		});
 		return false;
 	};
+	ele("deleteEntryLink").onclick = () => {
+		loadInc();
+		const spreadsheetId = ele("spreadsheetId").value;
+		const rowId = parseInt(ele("rowId").value);
+		modal.closeModal(ele("submitTimeEntryContainer"));
+		deleteRow(spreadsheetId, rowId);
+		loadDec();
+	}
 	submitForm.querySelectorAll("input,select").forEach((input) => {
 		input.addEventListener("change", updateDuration);
 	});
