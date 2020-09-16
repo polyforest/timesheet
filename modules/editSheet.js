@@ -194,30 +194,50 @@ async function startTimerClickedHandler(spreadsheetId) {
 	await utils.updateStartTime(spreadsheetId, startTime);
 }
 
+/**
+ * Coerces local time into UTC time.
+ * Google Sheets time format has no time zone, so we treat time numbers as UTC.
+ * However, in order to keep the Google sheet easy to manually edit, time stamps should be represented
+ * as local time.
+ * This method will take the start and end times, changing their timezones to UTC without converting the
+ * time. In order to maintain duration integrity, if there was a local time change (DST <--> ST), offset the end time.
+ *
+ * @param startTime {Date}
+ * @param endTime {Date}
+ * @return {Array<Date>} Returns [startTimeUtc, endTimeUtc]
+ */
+function coerceTimesToUtc(startTime, endTime) {
+	const tZOffset = (endTime.getTimezoneOffset() - startTime.getTimezoneOffset()) * 60 * 1000;
+	const startTime2 = new Date(Date.UTC(startTime.getFullYear(), startTime.getMonth(), startTime.getDate(), startTime.getHours(), startTime.getMinutes(), startTime.getSeconds()))
+	const endTime2 = new Date(Date.UTC(endTime.getFullYear(), endTime.getMonth(), endTime.getDate(), endTime.getHours(), endTime.getMinutes(), endTime.getSeconds()) + tZOffset)
+	return [startTime2, endTime2];
+}
+
 async function stopTimerClickedHandler(spreadsheetId) {
-	openSubmitForm(spreadsheetId, -1, timer.startTime, new Date(), "", "");
+	const times = coerceTimesToUtc(timer.startTime, new Date());
+	openSubmitForm(spreadsheetId, -1, times[0], times[1], "", "");
 	updateTimerUi(null);
 	await utils.updateStartTime(spreadsheetId, null);
 }
 
 /**
- * Formats a date as yyyy-mm-dd, according to https://xkcd.com/1179/
+ * Formats a UTC date as yyyy-mm-dd, according to https://xkcd.com/1179/
  *
  * @param date {Date}
  * @return {string}
  */
-function formatDate(date) {
-	return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${pad(date.getDate(), 2)}`
+function formatUtcDate(date) {
+	return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1, 2)}-${pad(date.getUTCDate(), 2)}`
 }
 
 /**
- * Formats a time as hh:mm:ss (24 hour format)
+ * Formats a UTC time as hh:mm:ss (24 hour format)
  *
  * @param time {Date}
  * @return {string}
  */
-function formatTime(time) {
-	return `${pad(time.getHours(), 2)}:${pad(time.getMinutes(), 2)}:${pad(time.getSeconds(), 2)}`;
+function formatUtcTime(time) {
+	return `${pad(time.getUTCHours(), 2)}:${pad(time.getUTCMinutes(), 2)}:${pad(time.getUTCSeconds(), 2)}`;
 }
 
 /**
@@ -227,7 +247,7 @@ function formatTime(time) {
  * @return {string}
  */
 function formatUtcDateTime(date) {
-	return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1, 2)}-${pad(date.getUTCDate(), 2)} ${pad(date.getUTCHours(), 2)}:${pad(date.getUTCMinutes(), 2)}:${pad(date.getUTCSeconds(), 2)}`
+	return `${formatUtcDate(date)} ${formatUtcTime(date)}`
 }
 
 /**
@@ -249,10 +269,10 @@ function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comm
 	} else {
 		ele("deleteEntryLink").style.removeProperty("display");
 	}
-	ele("dateStart").value = formatDate(startTime);
-	ele("timeStart").value = formatTime(startTime);
-	ele("dateEnd").value = formatDate(endTime);
-	ele("timeEnd").value = formatTime(endTime);
+	ele("dateStart").value = formatUtcDate(startTime);
+	ele("timeStart").value = formatUtcTime(startTime);
+	ele("dateEnd").value = formatUtcDate(endTime);
+	ele("timeEnd").value = formatUtcTime(endTime);
 	ele("category").value = category || "";
 	ele("comment").value = comment || "";
 	ele("timeResolutionsInput").value = !!appProperties.timeResolution ? appProperties.timeResolution.toString() : "4";
@@ -268,14 +288,14 @@ function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comm
  */
 function dateInput(id) {
 	const input = /** @type {HTMLInputElement} */ ele(id);
-	if (input.valueAsNumber > 0) return input.valueAsNumber;
+	if (supportsNumber(input)) return input.valueAsNumber;
 	return parseDate(input.value);
 }
 
 function parseDate(str) {
 	const groups = DATE_REGEX.exec(str);
 	if (groups == null) return null;
-	return (new Date(parseInt(groups[1]), parseInt(groups[2]) - 1, parseInt(groups[3]))).getTime();
+	return (new Date(Date.UTC(parseInt(groups[1]), parseInt(groups[2]) - 1, parseInt(groups[3])))).getTime();
 }
 
 /**
@@ -285,7 +305,7 @@ function parseDate(str) {
  */
 function timeInput(id) {
 	const input = /** @type {HTMLInputElement} */ ele(id);
-	if (input.valueAsNumber > 0) return input.valueAsNumber;
+	if (supportsNumber(input)) return input.valueAsNumber;
 	return parseTime(input.value);
 }
 
@@ -304,6 +324,15 @@ function parseDateTime(str) {
 	const dateStr = str.substring(0, splitIndex);
 	const timeStr = str.substring(splitIndex + 1);
 	return parseDate(dateStr) + parseTime(timeStr);
+}
+
+/**
+ * @param input {HTMLInputElement}
+ * @return Boolean Returns true if the input supports `valueAsNumber`
+ */
+function supportsNumber(input) {
+	const n = input.valueAsNumber;
+	return n != null && !isNaN(n);
 }
 
 async function submitTimeEntryFormHandler() {
