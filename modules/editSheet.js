@@ -136,7 +136,6 @@ async function refreshTimesheet(spreadsheetId) {
 		const startTime = properties.startTime || null;
 		updateTimerUi(startTime && new Date(Number(startTime)));
 
-		ele("timeResolutionsInput").value = !!properties.timeResolution ? properties.timeResolution.toString() : "4";
 		appProperties = properties;
 
 		ele("title").innerText = response.result.name;
@@ -239,6 +238,7 @@ function formatUtcDateTime(date) {
  * @param comment {String}
  */
 function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comment) {
+	ele("submitTimeEntryTitle").innerText = (rowId === -1) ? "New Time Entry" : "Edit Time Entry"
 	ele("spreadsheetId").value = spreadsheetId;
 	ele("rowId").value = rowId;
 	ele("dateStart").value = formatDate(startTime);
@@ -247,6 +247,7 @@ function openSubmitForm(spreadsheetId, rowId, startTime, endTime, category, comm
 	ele("timeEnd").value = formatTime(endTime);
 	ele("category").value = category || "";
 	ele("comment").value = comment || "";
+	ele("timeResolutionsInput").value = !!appProperties.timeResolution ? appProperties.timeResolution.toString() : "4";
 
 	modal.openModal(ele("submitTimeEntryContainer"));
 	updateDuration();
@@ -305,6 +306,7 @@ async function submitTimeEntryFormHandler() {
 	const cat = ele("category").value;
 	const comment = ele("comment").value;
 	modal.closeModal(ele("submitTimeEntryContainer"));
+
 	const tableBody = query("#timesheetTable > tbody");
 	if (rowId === -1) {
 		await utils.appendTimeEntry(spreadsheetId, startTime, endTime, cat, comment, appProperties.timeResolution || 4);
@@ -342,7 +344,7 @@ async function editSheet(spreadsheetId) {
 <div id="submitTimeEntryContainer" style="display: none" class="modal">
 	<div class="panel">
 		<div class="titleBar">
-			<div class="label">New Time Entry</div>
+			<div id="submitTimeEntryTitle" class="label"></div>
 			<div class="close">&times;</div>
 		</div>
 		<form id="submitTimeEntryForm">
