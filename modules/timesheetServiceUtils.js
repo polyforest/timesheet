@@ -231,7 +231,7 @@ export async function createTimesheet(title) {
 					null,
 					null,
 					"Total Hours:",
-					"=SUM(Timesheet!C:C*24)"
+					"=SUM(Timesheet!C:C)*24"
 				],
 				// A3:E3
 				[
