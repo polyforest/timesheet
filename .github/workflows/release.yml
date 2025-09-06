@@ -10,9 +10,10 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: appleboy/scp-action@v0.0.5
         with:
-          host: bandbox.dreamhost.com
+          host: iad1-shared-e1-05.dreamhost.com
           username: ${{ secrets.BANDBOX_FTP_USERNAME }}
           password: ${{ secrets.BANDBOX_FTP_PASSWORD }}
+          port: 22  # SFTP
           source: "./"
           target: "~/time.polyforest.com/"
           strip_components: 0
